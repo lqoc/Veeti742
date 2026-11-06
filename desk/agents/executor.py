@@ -201,10 +201,11 @@ class Executor(Agent):
         db.execute("UPDATE signals SET status='bought' WHERE id=?", (sid,))
         name = coin.get("name") or scan.get("name") or short(mint)
         stack = book.stack_value() or 1
-        db.execute("INSERT INTO activity(ts, kind, mint, agent, title, subtitle, value, ref_id) VALUES(?,?,?,?,?,?,?,?)",
+        db.execute("INSERT INTO activity(ts, kind, mint, agent, title, subtitle, value, value2, ref_id) "
+                   "VALUES(?,?,?,?,?,?,?,?,?)",
                    (time.time(), "bought", mint, "executor", f"Bought {name}",
                     f"Executor · {time.strftime('%H:%M', time.gmtime())}",
-                    f"${size:.2f} · {size / stack * 100:.0f}% of stack", pid))
+                    f"${size:.2f}", f"{size / stack * 100:.0f}% of stack", pid))
         self.executing = {"mint": mint, "name": name, "size": size, "status": "filled", "started": time.time(),
                           "id": sid, "pct": round(size / stack * 100, 1)}
         bus.publish("fill", {"mint": mint, "position": pid, "price": price, "size": size, "sig": sig})
