@@ -1,9 +1,9 @@
 @echo off
-rem Prints the one-time login link for your phone. Keep it private.
+rem Prints your Grok Bot links (website + login) and saves them to the Desktop. Keep them private.
 cd /d "%~dp0\..\.."
+.venv\Scripts\python -m desk.main --print-login > "%USERPROFILE%\Desktop\Grok Bot links.txt" 2>nul
 echo.
-echo Your Grok Bot login link (open it once on your phone in Chrome or Samsung Internet):
-.venv\Scripts\python -m desk.main --print-login
+type "%USERPROFILE%\Desktop\Grok Bot links.txt"
 echo.
-echo If it shows YOUR-TUNNEL-URL, wait 30 seconds and double-click LOGIN-LINK.bat again.
-pause
+echo Saved to "Grok Bot links.txt" on the Desktop. If it shows YOUR-TUNNEL-URL, wait 30 seconds and run this again.
+if not defined GROKBOT_AUTO start "" notepad "%USERPROFILE%\Desktop\Grok Bot links.txt"

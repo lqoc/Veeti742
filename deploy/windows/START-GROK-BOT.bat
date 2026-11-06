@@ -1,28 +1,43 @@
 @echo off
-rem Grok Bot desk on Windows: Python + the desk + a Cloudflare quick tunnel. Double-click to start.
+rem Starts the Grok Bot desk + Cloudflare tunnel (PAPER mode). GROK-BOT.bat calls this; you can also double-click it.
 cd /d "%~dp0\..\.."
 title Grok Bot setup
 where py >nul 2>nul && (set PY=py -3) || (set PY=python)
-if not exist .venv (
+if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" set "PY=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
+if not exist .venv\Scripts\python.exe (
   echo Creating Python environment...
-  %PY% -m venv .venv || (echo Python 3.12 is missing. Install it from python.org, tick "Add python.exe to PATH". & pause & exit /b 1)
+  %PY% -m venv .venv || goto nopython
 )
-echo Installing packages (first time takes 1-2 minutes)...
-.venv\Scripts\python -m pip install -q --upgrade pip
-.venv\Scripts\python -m pip install -q -r requirements.txt || (echo Package install failed. & pause & exit /b 1)
+echo Installing packages...
+.venv\Scripts\python -m pip install -q --disable-pip-version-check --upgrade pip
+.venv\Scripts\python -m pip install -q --disable-pip-version-check -r requirements.txt || goto pipfail
 if not exist tools mkdir tools
 if not exist tools\cloudflared.exe (
   echo Downloading cloudflared...
-  curl -L -o tools\cloudflared.exe https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe
+  curl -L -s -o tools\cloudflared.exe https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe || goto cffail
 )
 set HOST=127.0.0.1
 set PORT=8000
 set TUNNEL_METRICS=http://127.0.0.1:2000
 set DESK_SITE=deed
 set DESK_PRESET=learn
-start "Grok Bot desk (keep open)" cmd /k .venv\Scripts\python -m desk.main
+start "Grok Bot desk (keep open)" /min cmd /k .venv\Scripts\python -m desk.main
 timeout /t 6 /nobreak >nul
-start "Grok Bot tunnel (keep open)" cmd /k tools\cloudflared.exe tunnel --no-autoupdate --metrics 127.0.0.1:2000 --url http://127.0.0.1:8000
-echo Waiting for the tunnel...
-timeout /t 25 /nobreak >nul
-call "%~dp0LOGIN-LINK.bat"
+start "Grok Bot tunnel (keep open)" /min cmd /k tools\cloudflared.exe tunnel --no-autoupdate --metrics 127.0.0.1:2000 --url http://127.0.0.1:8000
+echo Started. Waiting for the tunnel...
+timeout /t 20 /nobreak >nul
+if not defined GROKBOT_AUTO call "%~dp0LOGIN-LINK.bat"
+exit /b 0
+
+:nopython
+echo Python 3.12 is missing. Run GROK-BOT.bat, it installs Python for you.
+if not defined GROKBOT_AUTO pause
+exit /b 1
+:pipfail
+echo Package install failed (internet?).
+if not defined GROKBOT_AUTO pause
+exit /b 1
+:cffail
+echo cloudflared download failed (internet?).
+if not defined GROKBOT_AUTO pause
+exit /b 1
