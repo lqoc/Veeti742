@@ -1,6 +1,6 @@
 # Grok Bot desk
 
-A private Solana memecoin desk: 5 agents in one always-on Python process, an iPhone web app, and
+A private Solana memecoin desk: 5 agents in one always-on Python process, a phone web app (Android or iPhone), and
 trading from **your own wallet**. No Telegram: pushes go to the app (bell + Web Push) and you talk to
 the desk in the Account tab.
 
@@ -56,7 +56,30 @@ sudo bash deploy/install.sh          # venv + systemd + cloudflared quick tunnel
 sudo bash deploy/install.sh login    # prints the login link
 ```
 
-## On the iPhone
+## On an Azure VM
+
+- **Windows VM** (Remote Desktop): install Python 3.12 from python.org (tick "Add python.exe to PATH"), download
+  https://github.com/lqoc/Veeti742/archive/refs/heads/ccr-8f54846f-6j3ph7.zip, Extract All, then double-click
+  `deploy\windows\START-GROK-BOT.bat`. Keep the "desk" and "tunnel" windows open. `LOGIN-LINK.bat` prints the
+  links again; `UPDATE-GROK-BOT.bat` pulls the latest code.
+- **Linux VM**: Azure portal > the VM > Run command > RunShellScript, or SSH:
+  `curl -fsSL https://raw.githubusercontent.com/lqoc/Veeti742/ccr-8f54846f-6j3ph7/deploy/azure.sh | sudo bash`
+  (Docker + desk + tunnel, auto-update every 15 min).
+
+## The deed.page website
+
+The VM also publishes a read-only copy of the app to deed.page (free static hosting) every 75 seconds:
+`https://grokbot-xxxxxxxx.deed.page/#d=<secret>`. The address never changes, even when the tunnel URL does.
+It shows everything the app shows but changes nothing: Live/Paper, settings and the wallet stay in the desk app.
+Free deed.page sites are public; your numbers sit under a long random folder that only your link contains,
+and nothing published holds a key, a token or the wallet form. Turn it off with the setting `desk.site = off`.
+
+## On your phone (Samsung / Android or iPhone)
+
+Android (Chrome or Samsung Internet): open the login link. Notifications work right away (Account >
+Enable notifications). Install it like an app from Account > Install, or the browser menu > Add to Home screen.
+
+iPhone:
 
 1. Open the login link in **Safari**.
 2. Share > **Add to Home Screen** > Add. Open Grok Bot from the home screen.

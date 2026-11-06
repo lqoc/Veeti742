@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import statistics
 import time
 
@@ -59,6 +60,11 @@ def _series(mint: str, t0: float) -> list[tuple[float, float | None, float | Non
                       (mint, t0 - 120, t0 + FOLLOW_S))]
     rows.sort(key=lambda r: r[0])
     return rows
+
+
+def mask_url(u):
+    """RPC URLs often carry an API key in the query (?api-key=...). Never export it."""
+    return re.sub(r"\?.*$", "?…", u) if isinstance(u, str) else u
 
 
 def _pct(a: float | None, b: float | None) -> float | None:
@@ -161,10 +167,11 @@ def export(hours: float = 24.0) -> dict:
     return {"exported_at": now, "hours": hours, "from": since, "to": now,
             "desk": {"mode": config.get("desk.mode"), "venue": config.get("desk.venue"),
                      "analyst_mode": config.get("analyst.mode")},
-            "settings": config.all_values(),
+            "settings": {k: (mask_url(v) if k == "desk.rpc_url" else v) for k, v in config.all_values().items()},
             "summary": summarize(out_coins),
             "coins": out_coins,
-            "change_log": db.query("SELECT * FROM change_log WHERE ts>=? ORDER BY ts", (since,)),
+            "change_log": [{**r, "old": mask_url(r["old"]), "new": mask_url(r["new"])} if r["key"] == "desk.rpc_url" else r
+                           for r in db.query("SELECT * FROM change_log WHERE ts>=? ORDER BY ts", (since,))],
             "how_to_read": ("outcome.*_pct = price change from the decision price (entry for trades). "
                             "max_up/max_down = best/worst within 6h. rugged = liquidity fell >80% or the pair vanished. "
                             "A stage with high max_up_pct is where the filters may be too strict; a 'traded' row that "

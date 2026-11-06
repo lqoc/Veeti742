@@ -9,7 +9,7 @@ import asyncio
 import logging
 import os
 
-from . import db, sources
+from . import db, sources, vault, webpush
 
 log = logging.getLogger("tunnel")
 
@@ -31,9 +31,16 @@ async def watch() -> None:
             if host:
                 url = f"https://{host}"
                 if url != last:
+                    old = db.state_get("public_url")
                     last = url
                     db.state_set("public_url", url)
                     log.info("tunnel up: %s  (login link: python -m desk.main --print-login)", url)
+                    if old and old != url:
+                        # quick-tunnel URLs change on restart: tell subscribed phones the new address.
+                        # Web Push is end-to-end encrypted to the device; this never goes into the bell,
+                        # the activity feed or the website files.
+                        await webpush.send_all({"title": "Grok Bot", "body": "The desk restarted. Tap to open its new address.",
+                                                "url": f"{url}/#t={vault.get('APP_TOKEN')}", "icon": "/icons/icon-192.png"})
         except Exception:
             pass
         await asyncio.sleep(30)

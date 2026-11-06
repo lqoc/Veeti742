@@ -70,8 +70,12 @@ def _clean(obj):
     return obj
 
 
+KEYLIKE = re.compile(r"([?&](?:api[-_]?key|apikey|key|token|secret|auth)=)[^&\"\s]+", re.I)
+
+
 def _json(obj) -> bytes:
-    return json.dumps(_clean(obj), default=str, separators=(",", ":")).encode()
+    text = json.dumps(_clean(obj), default=str, separators=(",", ":"))
+    return KEYLIKE.sub(r"\1…", text).encode()     # last guard: no key=... query value is ever published
 
 
 def pick_mints(limit: int = 40) -> list[str]:
@@ -223,7 +227,7 @@ class Publisher:
             self.last_export = now
         self.count += 1
         db.state_set("site_published_at", now)
-        log.info("published %s v%s (%s, %d files, %d KB)", res.get("url"), res.get("version"),
+        log.info("published %s %s (%s, %d files, %d KB)", res.get("url"), res.get("version"),
                  "full" if full else "data", len(files), len(body) // 1024)
         return res
 

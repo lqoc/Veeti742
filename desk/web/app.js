@@ -1,4 +1,6 @@
-// Grok Bot · iPhone web app. Plain JS, no framework, no build step.
+// Grok Bot · phone web app (Android + iPhone). Plain JS, no framework, no build step.
+// Two ways to run: the desk's own address (#t= login, full controls) or the deed.page website
+// (#d= link, read-only files the desk publishes).
 (function () {
   "use strict";
   const $ = (s, el = document) => el.querySelector(s);
@@ -7,28 +9,83 @@
   const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  // ------------------------------------------------------------ login: {URL}#t={APP_TOKEN} once, then localStorage
-  let TOKEN = null;
+  // ------------------------------------------------------------ login: {URL}#t={APP_TOKEN} or website {URL}#d={DATA_PATH}
+  let TOKEN = null, DATA = null;
   (function () {
-    const m = location.hash.match(/[#&]t=([^&]+)/);
-    if (m) {
-      TOKEN = decodeURIComponent(m[1]);
-      try { localStorage.setItem("desk_token", TOKEN); } catch (_) {}
-      history.replaceState(null, "", location.pathname + "#/home");
-    } else {
-      try { TOKEN = localStorage.getItem("desk_token"); } catch (_) {}
-    }
+    const mt = location.hash.match(/[#&]t=([^&]+)/), md = location.hash.match(/[#&]d=([^&]+)/);
+    try {
+      if (mt) { TOKEN = decodeURIComponent(mt[1]); localStorage.setItem("desk_token", TOKEN); }
+      if (md) { DATA = decodeURIComponent(md[1]); localStorage.setItem("desk_data", DATA); }
+    } catch (_) {}
+    if (mt || md) history.replaceState(null, "", location.pathname + "#/home");
+    try { TOKEN = TOKEN || localStorage.getItem("desk_token"); DATA = DATA || localStorage.getItem("desk_data"); } catch (_) {}
   })();
+  // read-only website: opened from deed.page (or with a #d= link and no desk login)
+  const STATIC = !!DATA && (/\.deed\.page$/.test(location.hostname) || !TOKEN);
+  const READ_ONLY = "This website is read-only. Change it in the desk app (the login link from your VM).";
+  const UA = navigator.userAgent || "";
+  const IS_IOS = /iPhone|iPad|iPod/.test(UA);
+  const IS_ANDROID = /Android/.test(UA);
+  let installEvt = null;
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; });
 
   const S = {
     state: null, chart: null, range: "LIVE", activity: null, actNext: null, account: null, settings: null,
     decisions: {}, coin: {}, audit: {}, notif: null, replies: [], lastOk: null, offline: false, retryAt: 0,
-    exec: null, authFail: !TOKEN,
+    exec: null, authFail: !TOKEN && !STATIC, badData: false, stale: false,
   };
   try { S.range = localStorage.getItem("desk_range") || "LIVE"; } catch (_) {}
 
   // ------------------------------------------------------------ API
+  async function staticApi(path, opts) {
+    if (opts.method && opts.method !== "GET") { const e = new Error(READ_ONLY); e.status = 405; throw e; }
+    const u = new URL(path, location.origin), p = u.pathname, q = u.searchParams;
+    const last = p.split("/").pop();
+    const map = [
+      [/^\/api\/state$/, "state.json"], [/^\/api\/chart$/, `chart-${(q.get("range") || "LIVE").toUpperCase()}.json`],
+      [/^\/api\/activity$/, "activity.json"], [/^\/api\/coin\//, `coin/${last}.json`], [/^\/api\/audit\//, `audit/${last}.json`],
+      [/^\/api\/agents\/\w+\/decisions$/, `decisions-${p.split("/")[3]}.json`], [/^\/api\/account$/, "account.json"],
+      [/^\/api\/settings$/, "settings.json"], [/^\/api\/notifications$/, "notifications.json"], [/^\/api\/search$/, "coins.json"],
+    ];
+    const hit = map.find(([re]) => re.test(p));
+    if (!hit) { const e = new Error(READ_ONLY); e.status = 404; throw e; }
+    let r;
+    try { r = await fetch(`/d/${encodeURIComponent(DATA)}/${hit[1]}?t=${Date.now()}`, { cache: "no-store" }); }
+    catch (e) { markOffline(); throw e; }
+    if (r.status === 404) { const e = new Error("not on the website"); e.status = 404; throw e; }
+    if (!r.ok) { markOffline(); throw new Error("HTTP " + r.status); }
+    let j = await r.json();
+    markOnline();
+    if (p === "/api/activity") {
+      const lim = +(q.get("limit") || 30), before = +(q.get("before") || 0);
+      const rows = before ? j.rows.filter((x) => x.id < before) : j.rows;
+      const page = rows.slice(0, lim);
+      j = { rows: page, next: rows.length > lim ? page[page.length - 1].id : null };
+    }
+    if (p === "/api/search") {
+      const t = (q.get("q") || "").toLowerCase();
+      j = { rows: j.rows.filter((c) => c.mint === q.get("q") || (c.symbol || "").toLowerCase().includes(t) || (c.name || "").toLowerCase().includes(t)).slice(0, 10) };
+    }
+    if (p === "/api/state") checkFresh();
+    return j;
+  }
+
+  async function checkFresh() {
+    try {
+      const r = await fetch(`/d/${encodeURIComponent(DATA)}/meta.json?t=${Date.now()}`, { cache: "no-store" });
+      const m = await r.json();
+      const age = Date.now() / 1000 - m.published_at;
+      const el = $("#offline");
+      S.stale = age > Math.max(240, 3 * (m.publish_s || 75));
+      if (S.stale) {
+        el.textContent = `Desk not publishing · last update ${new Date(m.published_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+        el.hidden = false;
+      } else if (!S.offline) el.hidden = true;
+    } catch (_) {}
+  }
+
   async function api(path, opts = {}) {
+    if (STATIC) return staticApi(path, opts);
     let r;
     try {
       r = await fetch(path, {
@@ -52,7 +109,7 @@
   function markOnline() {
     S.lastOk = Date.now();
     backoff = 3;
-    if (S.offline) { S.offline = false; $("#offline").hidden = true; clearInterval(offTimer); }
+    if (S.offline) { S.offline = false; if (!S.stale) $("#offline").hidden = true; clearInterval(offTimer); }
   }
   function markOffline() {
     if (!S.offline) {
@@ -152,12 +209,13 @@
   function route() {
     const view = $("#view");
     clearTimers();
-    if (S.authFail || !TOKEN) {
+    if ((S.authFail || !TOKEN) && !STATIC || S.badData) {
       $("#tabbar").hidden = true;
       view.className = "view";
       view.innerHTML = `<div style="padding-top:30vh;text-align:center"><img src="/icons/icon-192.png" width="72" height="72" style="border-radius:18px" alt="">
         <h2 style="font:700 24px var(--display)">Grok Bot</h2>
-        <p class="muted" style="max-width:300px;margin:0 auto;line-height:1.45">Open your login link once on this iPhone:<br><span style="font-family:var(--mono);font-size:13px">{URL}#t=…</span><br>The desk prints it with <span style="font-family:var(--mono);font-size:13px">python -m desk.main --print-login</span>.</p></div>`;
+        <p class="muted" style="max-width:310px;margin:0 auto;line-height:1.45">${S.badData ? "This website link is incomplete or old. Open the full link (it ends with #d=…) once more." :
+          `Open your login link once on this phone, in Chrome or Samsung Internet:<br><span style="font-family:var(--mono);font-size:13px">{URL}#t=…</span><br>The desk prints it (LOGIN-LINK.bat on Windows, <span style="font-family:var(--mono);font-size:13px">azure.sh link</span> on Linux).`}</p></div>`;
       return;
     }
     $("#tabbar").hidden = false;
@@ -234,6 +292,7 @@
 
   // ------------------------------------------------------------ mode switch (Home + Account) and results export
   function switchMode(target, after) {
+    if (STATIC) { toast(READ_ONLY, 4000); return; }
     const cur = S.state ? S.state.mode : (S.account || {}).mode;
     if (target === cur) return;
     if (target === "LIVE") {
@@ -251,7 +310,8 @@
   async function exportResults(hours) {
     try {
       toast("Preparing results...");
-      const r = await fetch(`/api/export?hours=${hours || 24}`, { headers: { Authorization: "Bearer " + TOKEN }, cache: "no-store" });
+      const r = STATIC ? await fetch(`/d/${encodeURIComponent(DATA)}/export.json?t=${Date.now()}`, { cache: "no-store" })
+        : await fetch(`/api/export?hours=${hours || 24}`, { headers: { Authorization: "Bearer " + TOKEN }, cache: "no-store" });
       if (!r.ok) throw new Error("HTTP " + r.status);
       const blob = await r.blob();
       const m = (r.headers.get("content-disposition") || "").match(/filename="([^"]+)"/);
@@ -375,7 +435,7 @@
       S.state = await api("/api/state");
       if (current === "home") drawHome();
       if (current === "agents") drawAgentsTab();
-    } catch (_) {}
+    } catch (e) { if (STATIC && e.status === 404 && !S.state) { S.badData = true; route(); } }
   }
 
   // ------------------------------------------------------------ AGENT CARDS
@@ -481,7 +541,7 @@
         <span class="vd ${esc(d.verdict)}">${esc(d.verdict)}</span><span class="rs">${esc(d.reason)}</span></div>`).join("");
       return `<section class="agent-full"><div class="top"><span class="ico" style="width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:${COLOR[a.name]}">${ICON[a.name].replace("<svg", '<svg style="width:22px;height:22px;fill:none;stroke:#000;stroke-width:2.2"')}</span>
         <div class="mid"><h3>${NAMES[a.name]}</h3><div class="muted" style="font-size:14px"><span class="statusdot ${a.paused ? "paused" : down ? "down" : ""}"></span>${a.paused ? "paused" : down ? "not responding" : "running"} · ${a.count} today</div></div>
-        <button class="switch-hit" data-toggle="${a.name}" ${locked ? 'data-locked="1"' : ""} aria-label="Pause or resume"><span class="switch ${a.paused ? "" : "on"} ${locked ? "locked" : ""}"></span></button></div>
+        ${STATIC ? "" : `<button class="switch-hit" data-toggle="${a.name}" ${locked ? 'data-locked="1"' : ""} aria-label="Pause or resume"><span class="switch ${a.paused ? "" : "on"} ${locked ? "locked" : ""}"></span></button>`}</div>
         <div style="margin-top:10px">${rows || '<div class="empty" style="padding:14px">No decisions yet</div>'}</div>
         <a class="linkbtn" href="#/account/${a.name}">Settings ›</a></section>`;
     }).join("");
@@ -551,7 +611,8 @@
   }
   async function loadCoin(mint) {
     let c;
-    try { c = await api(`/api/coin/${encodeURIComponent(mint)}`); } catch (_) { return; }
+    try { c = await api(`/api/coin/${encodeURIComponent(mint)}`); }
+    catch (e) { if (e.status === 404 && current === "coin" && !S.coin[mint]) $("#coin").innerHTML = `<div class="empty">This coin isn't on the website. The website shows the coins from the last hours of activity.</div>`; return; }
     S.coin[mint] = c;
     renderCoin(mint, c);
   }
@@ -573,8 +634,8 @@
         <div class="line"><span>Timeout</span><span class="muted">${Math.floor(left / 3600)}h ${Math.floor((left % 3600) / 60)}m left</span></div>
         ${p.tx ? `<div class="line"><span>Buy transaction</span><a class="linkbtn" href="${esc(p.tx)}" target="_blank" rel="noopener">Solscan ↗</a></div>` : ""}</div>`;
     }
-    const wsell = p && p.mode === "LIVE" && p.venue === "wallet";
-    const psell = p && p.mode === "PAPER";
+    const wsell = !STATIC && p && p.mode === "LIVE" && p.venue === "wallet";
+    const psell = !STATIC && p && p.mode === "PAPER";
     $("#coin").innerHTML = `<div class="coin-head"><span class="logo" ${c.image ? `style="background-image:url('${esc(c.image)}')"` : ""}></span>
         <div style="flex:1;min-width:0"><h1>${esc(c.name || short(mint))}</h1><div class="muted" style="font-size:15px">${esc(c.symbol || "")} · Solana${c.age_h != null ? " · " + (c.age_h < 1 ? Math.round(c.age_h * 60) + "m" : Math.round(c.age_h) + "h") + " old" : ""}</div></div>${shield}</div>
       <div class="price-big" style="margin-top:14px">${px(c.price)}</div>
@@ -606,7 +667,8 @@
   }
   async function loadAudit(mint, play) {
     let a;
-    try { a = await api(`/api/audit/${encodeURIComponent(mint)}`); } catch (_) { return; }
+    try { a = await api(`/api/audit/${encodeURIComponent(mint)}`); }
+    catch (e) { if (e.status === 404 && current === "audit" && !S.audit[mint]) $("#aud").innerHTML = `<div class="empty">No coin taken apart yet</div>`; return; }
     S.audit[mint] = a;
     renderAudit(mint, a, play);
   }
@@ -619,9 +681,10 @@
       <div class="verdict" id="verdict">${has ? "" : '<div class="vt muted">No coin taken apart yet</div>'}</div>
       <div class="list layer-rows" id="lrows">${LAYERS.map((n, i) => `<div class="row" data-row="${i + 1}"><span class="n">${i + 1}</span><div class="mid"><div class="t1">${n}</div></div><span class="val faint">–</span></div>`).join("")}</div>
       <div class="list" style="margin-top:14px"><div class="field"><div class="lbl">Take apart before buying</div><button class="switch-hit" id="aud-toggle"><span class="switch ${a.enabled ? "on" : ""}"></span></button></div></div>
-      ${has ? "" : `<button class="cta gray" id="aud-run">Take apart now</button>`}
+      ${has || STATIC ? "" : `<button class="cta gray" id="aud-run">Take apart now</button>`}
       <a class="cta green" href="${esc(a.coin_url)}" target="_blank" rel="noopener">Open on FOMO</a>`;
     $("#aud-toggle").onclick = () => {
+      if (STATIC) { toast(READ_ONLY, 4000); return; }
       if (a.enabled) confirmTwice("Stop taking coins apart?", "Coins will go to the Analyst without the 8 safety layers.", async () => { await post("/api/settings", { key: "auditor.enabled", value: false }); loadAudit(mint, false); });
       else post("/api/settings", { key: "auditor.enabled", value: true }).then(() => loadAudit(mint, false));
     };
@@ -689,8 +752,52 @@
       <input type="range" data-slide="${s.key}" min="${s.min}" max="${s.max}" step="${step}" value="${s.value}"><div class="err"></div></div>`;
   }
 
+  function settingRead(s) {
+    const v = s.type === "bool" ? (s.value ? "on" : "off") : `${s.value}${s.unit && s.type !== "choice" && s.type !== "str" ? " " + s.unit : ""}`;
+    return `<div class="field"><div class="lbl">${esc(s.label)}</div><span class="muted">${esc(v)}</span></div>`;
+  }
+
+  function drawAccountStatic(a) {
+    const grouped = {};
+    S.settings.settings.forEach((s) => { if (!s.guarded) (grouped[s.group] = grouped[s.group] || []).push(s); });
+    const titles = { scanner: "Scanner", auditor: "Auditor", analyst: "Analyst", executor: "Executor", risk: "Risk", wallet: "Wallet trading", desk: "Desk" };
+    $("#acc").innerHTML = `
+      <p class="warn" style="margin:8px 4px">${READ_ONLY}</p>
+      <div class="group-h">Mode</div>
+      <div class="seg mode"><button class="${a.mode === "PAPER" ? "on paper" : ""}">PAPER</button><button class="${a.mode === "LIVE" ? "on live" : ""}">LIVE</button></div>
+      <div class="group-h">Your wallet</div>
+      <div class="list plain">${a.wallet ? `<div class="field"><div class="lbl">Address<small>${esc(short(a.wallet.pubkey))}</small></div></div>
+        <div class="field"><div class="lbl">USDC</div><span>${(a.wallet_balances || {}).usdc != null ? usd(a.wallet_balances.usdc) : "–"}</span></div>` :
+        `<div class="field"><div class="lbl">No wallet on the desk<small>Import it in the desk app, never on this website.</small></div></div>`}</div>
+      <div class="group-h">FOMO</div>
+      <div class="list plain">${a.profile_url ? `<a class="field" href="${esc(a.profile_url)}" target="_blank" rel="noopener"><div class="lbl">Your FOMO profile</div><span class="chev">›</span></a>` : ""}
+        <button class="field" style="width:100%;text-align:left" id="invite"><div class="lbl">Invite a friend</div><span class="chev">›</span></button></div>
+      <div class="group-h">Results</div>
+      <div class="list plain"><div class="field"><div class="lbl">Export results (last 24h)<small>Every coin, why it stopped, and what its price did over the next 6h.</small></div><button class="linkbtn" id="export-web">Download</button></div></div>
+      <div class="group-h">Settings</div>
+      ${Object.keys(grouped).map((g) => `<details class="sgroup"><summary>${titles[g] || g}<span class="muted">${grouped[g].length}</span></summary><div class="list plain">${grouped[g].map(settingRead).join("")}</div></details>`).join("")}`;
+    $("#export-web").onclick = () => exportResults(24);
+    $("#invite").onclick = async () => {
+      const url = S.account.signup_url;
+      if (navigator.share) { try { await navigator.share({ url }); return; } catch (_) { return; } }
+      try { await navigator.clipboard.writeText(url); toast("Link copied"); } catch (_) { toast(url, 5000); }
+    };
+  }
+
+  function pushRow(a, standalone) {
+    const canPush = "PushManager" in window && "serviceWorker" in navigator && "Notification" in window;
+    let right;
+    if (canPush && (!IS_IOS || standalone)) right = `<button class="linkbtn" id="push-on">Enable notifications</button>`;
+    else if (IS_IOS) right = `<span class="muted" style="font-size:13px;max-width:55%;text-align:right">Add to Home Screen first (Share › Add to Home Screen)</span>`;
+    else right = `<span class="muted" style="font-size:13px;max-width:55%;text-align:right">This browser can't show notifications. Use Chrome or Samsung Internet.</span>`;
+    const install = standalone ? "" : `<div class="field"><div class="lbl">Install on this phone<small>${installEvt ? "Adds Grok Bot to your home screen like an app." :
+      IS_ANDROID ? "Chrome: ⋮ menu › Add to Home screen. Samsung Internet: ≡ menu › Add page to › Home screen." : "Share › Add to Home Screen."}</small></div>${installEvt ? `<button class="linkbtn" id="install">Install</button>` : ""}</div>`;
+    return `${install}<div class="field"><div class="lbl">Notifications<small>${a.push_subs} device${a.push_subs === 1 ? "" : "s"} subscribed</small></div>${right}</div>`;
+  }
+
   function drawAccount(focus) {
     const a = S.account, st = S.state;
+    if (STATIC) { drawAccountStatic(a); return; }
     const grouped = {};
     S.settings.settings.forEach((s) => { if (!s.guarded) (grouped[s.group] = grouped[s.group] || []).push(s); });
     const standalone = window.navigator.standalone || window.matchMedia("(display-mode: standalone)").matches;
@@ -719,8 +826,7 @@
 
       <div class="group-h">Notifications</div>
       <div class="list plain">
-        <div class="field"><div class="lbl">Web push<small>${a.push_subs} device${a.push_subs === 1 ? "" : "s"} subscribed</small></div>
-          ${standalone ? `<button class="linkbtn" id="push-on">Enable notifications</button>` : `<span class="muted" style="font-size:13px;max-width:55%;text-align:right">Add to Home Screen first (Share › Add to Home Screen)</span>`}</div>
+        ${pushRow(a, standalone)}
         <div class="field"><div class="lbl">Test</div><button class="linkbtn" id="push-test">Send test push</button></div>
       </div>
 
@@ -761,6 +867,7 @@
       switchMode(b.dataset.mode, () => viewAccount());
     };
     $("#export").onclick = (e) => { const b = e.target.closest("[data-hours]"); if (b) exportResults(+b.dataset.hours); };
+    /* WALLET-IMPORT-START */
     const imp = $("#w-import");
     if (imp) imp.onclick = () => sheet(`<h3>Import wallet</h3>
       <p>Paste the private key of a <b>fresh wallet you use only for this bot</b>, holding only what you can afford to lose. Phantom: Settings › Manage Accounts › the account › Show Private Key. Never paste a recovery phrase.</p>
@@ -774,6 +881,7 @@
         catch (err) { $(".err", el).textContent = err.message; }
       };
     });
+    /* WALLET-IMPORT-END */
     const rm = $("#w-remove");
     if (rm) rm.onclick = () => confirmType("Remove wallet", "Deletes the encrypted key from the desk. LIVE switches back to PAPER. Your funds stay in the wallet.", "REMOVE",
       async () => { await post("/api/wallet/remove", { confirm: "REMOVE" }); viewAccount(); });
@@ -782,6 +890,8 @@
       if (navigator.share) { try { await navigator.share({ url }); return; } catch (_) { return; } }
       try { await navigator.clipboard.writeText(url); toast("Link copied"); } catch (_) { toast(url, 5000); }
     };
+    const ins = $("#install");
+    if (ins) ins.onclick = async () => { if (!installEvt) return; installEvt.prompt(); try { await installEvt.userChoice; } catch (_) {} installEvt = null; viewAccount(); };
     const pon = $("#push-on");
     if (pon) pon.onclick = enablePush;
     $("#push-test").onclick = async () => { try { const r = await post("/api/push/test"); toast(r.webpush ? `Sent to ${r.webpush.sent} device(s)` : "Sent in-app"); } catch (e) { toast(e.message); } };
@@ -916,6 +1026,7 @@
     }
   }
   async function stream() {
+    if (STATIC) return;   // the website has no live stream: it re-reads the published files every 10-20s
     for (;;) {
       if (!TOKEN || S.authFail) { await sleep(5000); continue; }
       try {

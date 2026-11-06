@@ -14,7 +14,7 @@ import logging.handlers
 import os
 import sys
 
-from . import api, book, config, db, health, learn, registry, tunnel, vault
+from . import api, book, config, db, health, learn, publish, registry, tunnel, vault
 from .agents.base import LOGS
 
 
@@ -41,6 +41,10 @@ def boot() -> None:
     if book.run_start() == 0:
         book.start_run()
     book.night_start()
+    site = os.environ.get("DESK_SITE", "").strip().lower()   # deploy scripts turn the website on once
+    if site in ("off", "deed") and db.state_get("site_env") != site:
+        config.set_value("desk.site", site, "env")
+        db.state_set("site_env", site)
 
 
 async def heartbeat_main() -> None:
@@ -67,7 +71,7 @@ async def run() -> None:
         log.info("ticket check: %s", w["text"])
     await asyncio.gather(server.serve(), book.sample_loop(), api.price_loop(), heartbeat_main(),
                          health.desk_health_loop(), health.night_report_loop(), tunnel.watch(),
-                         learn.followup_loop())
+                         learn.followup_loop(), publish.publisher.loop())
 
 
 def main() -> None:
@@ -79,6 +83,9 @@ def main() -> None:
     if args.print_login:
         db.connect()
         url = args.url or db.state_get("public_url") or "https://YOUR-TUNNEL-URL"
+        site = publish.login_link()
+        if site:
+            print(f"Website (read-only, stable): {site}")
         print(f"{url.rstrip('/')}/#t={vault.get('APP_TOKEN')}")
         return
     if args.import_wallet:
