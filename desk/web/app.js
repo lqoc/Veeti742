@@ -338,6 +338,7 @@
         <a class="iconbtn" href="#/notifications" aria-label="Notifications">${ICON.bell}<span class="dot" id="h-dot" hidden></span></a></div>
       <div class="ticker" id="h-ticker"></div>
       <div class="seg mode home-mode" id="h-mode"><button data-mode="LIVE">Live</button><button data-mode="PAPER">Paper</button></div>
+      <a class="card" id="h-wallet" href="#/account" hidden style="display:flex;align-items:center;gap:10px;margin:6px 0 10px"><div style="flex:1"><div style="font-weight:600">Import your wallet</div><div class="muted" style="font-size:14px">Needed before LIVE can trade from it. Paper trading runs without it.</div></div><span class="chev">›</span></a>
       <div class="eyebrow" id="h-eyebrow">&nbsp;</div>
       <div class="balance-row"><div class="big odo" id="h-bal"><div class="sk" style="height:66px;width:220px"></div></div><span id="h-badge"></span></div>
       <div class="change" id="h-change"></div>
@@ -370,6 +371,7 @@
     if (!st || current !== "home") return;
     const b = st.breakdown;
     $("#h-dot").hidden = !st.unread;
+    $("#h-wallet").hidden = STATIC || !!(st.wallet && st.wallet.pubkey);
     $$("#h-mode button").forEach((b) => { b.className = b.dataset.mode === st.mode ? "on " + st.mode.toLowerCase() : ""; });
     $("#h-eyebrow").textContent = `Equity · started with ${usd(b.start)}`;
     odoSet($("#h-bal"), usd(st.balance));
@@ -487,7 +489,7 @@
     const open = (a.open || []).map((p) => `<div class="r"><span class="n">${esc(p.symbol || p.name)}</span><span class="${p.pnl >= 0 ? "up" : "down"}">${sgnUsd(p.pnl)}</span></div>`).join("");
     const last = a.last ? `<div style="font-size:16px">${esc(a.last_text)} · ${esc(a.last.symbol || a.last.name)} <span class="${a.last.pnl_usd >= 0 ? "up" : "down"}">${sgnUsd(a.last.pnl_usd)}</span></div>` : "";
     return cardShell(a, a.status, `${open ? `<div class="feed">${open}</div>` : ""}${last || (open ? "" : '<div class="muted">Nothing open</div>')}
-      <div class="pills"><span class="pill mono red">stop -${a.stop_pct}%</span><span class="pill mono green">trail ${a.trail_pct}%</span></div>`,
+      <div class="pills"><span class="pill mono red">stop -${a.stop_pct}%</span>${a.take_profit_pct > 0 ? `<span class="pill mono green">target +${a.take_profit_pct}%</span>` : ""}<span class="pill mono green">trail ${a.trail_pct}%</span></div>`,
       `<span>${a.count} exits tonight</span>${a.locked ? "<span>locked while open</span>" : ""}`);
   }
 
@@ -768,7 +770,7 @@
       <div class="group-h">Your wallet</div>
       <div class="list plain">${a.wallet ? `<div class="field"><div class="lbl">Address<small>${esc(short(a.wallet.pubkey))}</small></div></div>
         <div class="field"><div class="lbl">USDC</div><span>${(a.wallet_balances || {}).usdc != null ? usd(a.wallet_balances.usdc) : "–"}</span></div>` :
-        `<div class="field"><div class="lbl">No wallet on the desk<small>Import it in the desk app, never on this website.</small></div></div>`}</div>
+        `<div class="field"><div class="lbl">No wallet on the desk<small>Import it in the desk app: the trycloudflare link in "Grok Bot links.txt" on your VM's Desktop, Account › Import wallet. Never on this website.</small></div></div>`}</div>
       <div class="group-h">FOMO</div>
       <div class="list plain">${a.profile_url ? `<a class="field" href="${esc(a.profile_url)}" target="_blank" rel="noopener"><div class="lbl">Your FOMO profile</div><span class="chev">›</span></a>` : ""}
         <button class="field" style="width:100%;text-align:left" id="invite"><div class="lbl">Invite a friend</div><span class="chev">›</span></button></div>
@@ -808,6 +810,12 @@
       <div class="seg mode" id="mode"><button class="${a.mode === "PAPER" ? "on paper" : ""}" data-mode="PAPER">PAPER</button><button class="${a.mode === "LIVE" ? "on live" : ""}" data-mode="LIVE">LIVE</button></div>
       <p class="muted" style="font-size:13px;margin:8px 4px">${a.mode === "PAPER" ? `PAPER simulates every trade. LIVE ${a.venue === "wallet" ? "buys and sells from your imported wallet" : "sends Buy on FOMO buttons"}. ${a.live_allowed ? "" : "LIVE unlocks after 1 full PAPER night (6h+, closed by the morning report)."}` : "LIVE: real money."}</p>
       ${a.ticket ? `<p class="${a.ticket.level === "warn" ? "danger" : "warn"}" style="font-size:14px;margin:4px">${esc(a.ticket.text)}</p>` : ""}
+
+      <div class="group-h">Strategy</div>
+      <div class="seg" id="strategy"><button data-s="sniper" class="${st.strategy === "sniper" ? "on" : ""}">Sniper</button><button data-s="strict" class="${st.strategy !== "sniper" ? "on" : ""}">Strict</button></div>
+      <p class="muted" style="font-size:13px;margin:8px 4px">${st.strategy === "sniper"
+        ? "Sniper: looks at a coin about 1 minute after it graduates, scores its first 5 minutes, takes profit at +" + st.take_profit_pct + "%, stops at -" + st.stop_pct + "%, trails after +8% and gives up after 20 minutes. Stops buying for the day after a $5 loss."
+        : "Strict: the original rules. Waits 10 minutes, needs $40K liquidity, scores the first hour, rides winners with a trailing stop."}</p>
 
       <div class="group-h">Your wallet</div>
       <div class="list plain">${w ? `
@@ -867,6 +875,11 @@
       switchMode(b.dataset.mode, () => viewAccount());
     };
     $("#export").onclick = (e) => { const b = e.target.closest("[data-hours]"); if (b) exportResults(+b.dataset.hours); };
+    $("#strategy").onclick = async (e) => {
+      const b = e.target.closest("[data-s]"); if (!b || b.dataset.s === S.state.strategy) return;
+      try { const r = await post("/api/strategy", { strategy: b.dataset.s }); toast(`${b.dataset.s === "sniper" ? "Sniper" : "Strict"} on · ${r.changed.length} settings changed`); S.state = await api("/api/state"); viewAccount(); }
+      catch (err) { toast(err.message, 4000); }
+    };
     /* WALLET-IMPORT-START */
     const imp = $("#w-import");
     if (imp) imp.onclick = () => sheet(`<h3>Import wallet</h3>

@@ -23,6 +23,22 @@ PumpPortal graduations -> Scanner -> Auditor (8 layers) -> Analyst (score) -> Ex
 
 Every number is a setting in the Account tab (slider + exact field).
 
+## Strategies (Account > Strategy)
+
+| | Sniper (default on the VM) | Strict (the original build prompt) |
+|---|---|---|
+| Looks at a coin | ~1 min after it graduates (checks every 15 s) | 10 min after |
+| Min liquidity / top 10 | $12K / 30% | $40K / 25% |
+| Analyst scores | the first 5 minutes (volume, buys, 5m move) | the first hour |
+| Take profit | +15% | off |
+| Stop / trail | -10% / 5% trail after +8% | -6% / 12% trail after +20% |
+| Gives up | after 20 min unless up 3% | after 3 h unless up 5% |
+| Price checks | every 5 s | every 15 s |
+| Other | skips a coin that ran 10% after scoring; stops buying after a $5 day loss; 5% buy / 15% sell slippage so exits fill | |
+
+Both keep the 8 safety layers, the $0.50-$4 score tiers, max 3 positions and the $1 USDC reserve.
+Switching to LIVE keeps the strategy you chose.
+
 ## Read this before LIVE
 
 - This trades real money on very risky coins. Most memecoins go to zero. Use a **fresh wallet that only holds what you can lose**.

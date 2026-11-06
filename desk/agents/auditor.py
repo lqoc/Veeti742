@@ -159,9 +159,13 @@ class Auditor(Agent):
                             creator = fields.get("rugcheck_report", "creator", rep)
                             source = "rugcheck"
                         at_mig = coin.get("creator_balance_at_migration")
-                        if not creator or at_mig is None:
+                        if not creator:
                             raise NoData("dev")
                         now_bal = await self.fetch(3, lambda: sources.owner_balance(creator, mint))
+                        if at_mig is None:   # audited before the migration-time read landed: start the baseline now
+                            at_mig = now_bal
+                            db.execute("UPDATE coins SET creator=?, creator_balance_at_migration=? WHERE mint=?",
+                                       (creator, str(now_bal), mint))
                         dev_pct = now_bal / supply * 100
                         raw = {"creator": creator, "now": now_bal, "at_migration": at_mig}
                         if dev_pct >= config.get("auditor.max_dev_pct"):

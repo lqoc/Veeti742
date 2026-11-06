@@ -82,6 +82,10 @@ SPEC: dict[str, Spec] = {
     "analyst.rules_bundled_from": i(3, 1, 1000, "Bundled penalty from", "wallets"),
     "analyst.rules_flush_drop_m5_pct": f(5, 0.1, 100, "Flush: 5m drop", "%"),
     "analyst.rules_chase_h1_pct": f(80, 1, 10000, "Chase: 1h change for 1.0", "%"),
+    "analyst.rules_window": c("h1", ("h1", "m5"), "Rules look at the last", ("window",)),
+    "analyst.rules_alive_volume_m5": f(5000, 100, 1_000_000, "Alive: 5m volume for 1.0 (m5)", "$", (), 100),
+    "analyst.rules_organic_buys_m5": i(40, 1, 10000, "Organic: 5m buys for 1.0 (m5)", ""),
+    "analyst.rules_chase_m5_pct": f(60, 1, 10000, "Chase: 5m change for 1.0 (m5)", "%"),
     # ---- Executor
     "executor.size_mode": c("tiers", ("tiers", "pct"), "Sizing", ("sizing",)),
     "executor.tier_usd_52": f(0.50, 0, 1000, "Score 52-59", "$", ("tier 52",), 0.05),
@@ -101,6 +105,7 @@ SPEC: dict[str, Spec] = {
     # ---- Risk
     "risk.poll_s": i(15, 5, 120, "Price poll", "s"),
     "risk.stop_pct": f(6, 0.5, 90, "Stop loss", "%", ("stop", "stop loss"), 0.5),
+    "risk.take_profit_pct": f(0, 0, 10000, "Take profit at (0 = off)", "%", ("take profit", "tp", "target"), 0.5),
     "risk.trail_start_pct": f(20, 1, 10000, "Trail starts at", "%", ("trail start",)),
     "risk.trail_pct": f(12, 0.5, 90, "Trail distance", "%", ("trail",), 0.5),
     "risk.timeout_h": f(3, 0.1, 72, "Timeout", "h", ("timeout",), 0.1),
@@ -143,24 +148,75 @@ PRESETS = {
         "scanner.max_h1_change_pct": 400.0,
         "analyst.rules_chase_h1_pct": 400.0,
     },
+    # Sniper: look at a coin ~1 min after it graduates, score it on its first 5 minutes, take small profits fast.
+    "sniper": {
+        "scanner.min_pool_age_min": 1,
+        "scanner.poll_s": 15,
+        "scanner.min_liquidity_usd": 12000.0,
+        "scanner.max_top10_pct": 30.0,
+        "scanner.max_h1_change_pct": 150.0,
+        "scanner.max_wait_min": 15,
+        "auditor.min_pool_age_min": 1,
+        "auditor.max_top10_pct": 30.0,
+        "analyst.rules_window": "m5",
+        "analyst.min_alive_6h": 0.5,
+        "analyst.min_organic": 0.5,
+        "analyst.max_chase": 0.4,
+        "executor.recheck_price_up_pct": 10.0,
+        "risk.poll_s": 5,
+        "risk.stop_pct": 10.0,
+        "risk.take_profit_pct": 15.0,
+        "risk.trail_start_pct": 8.0,
+        "risk.trail_pct": 5.0,
+        "risk.timeout_h": 0.33,
+        "risk.timeout_min_gain_pct": 3.0,
+        "risk.daily_loss_limit_usd": 5.0,
+        "wallet.slippage_bps": 500,
+        "wallet.sell_slippage_bps": 1500,
+    },
 }
+PAPER_ONLY = {"learn"}          # looser test filters: switching to LIVE puts these back
+STRATEGIES = ("sniper", "strict")
+
+
+def preset_keys() -> set[str]:
+    return {k for p in PRESETS.values() for k in p}
 
 
 def apply_preset(name: str, who: str = "preset") -> list[str]:
     out = []
-    for k, v in PRESETS[name].items():
-        old, new = set_value(k, v, who)
-        out.append(f"{k} {display(k, old)} -> {display(k, new)}")
+    if name == "strict":          # the original build-prompt numbers
+        for k in sorted(preset_keys()):
+            old, new = set_value(k, SPEC[k].default, who)
+            if old != new:
+                out.append(f"{k} {display(k, old)} -> {display(k, new)}")
+    else:
+        for k, v in PRESETS[name].items():
+            old, new = set_value(k, v, who)
+            if old != new:
+                out.append(f"{k} {display(k, old)} -> {display(k, new)}")
+    from . import db
+    if name in STRATEGIES:
+        db.state_set("strategy", name)
     return out
 
 
+def strategy() -> str:
+    from . import db
+    return db.state_get("strategy", "strict") or "strict"
+
+
 def undo_presets(who: str = "live-switch") -> list[str]:
+    """Only the PAPER-only test preset is undone for LIVE. A chosen strategy (sniper) stays."""
     out = []
-    for preset in PRESETS.values():
-        for k, v in preset.items():
+    keep = PRESETS.get(strategy(), {})
+    for name in PAPER_ONLY:
+        for k, v in PRESETS[name].items():
             if get(k) == v and v != SPEC[k].default:
-                set_value(k, SPEC[k].default, who)
-                out.append(f"{k} back to {display(k, SPEC[k].default)}")
+                target = keep.get(k, SPEC[k].default)
+                if target != v:
+                    set_value(k, target, who)
+                    out.append(f"{k} back to {display(k, target)}")
     return out
 
 

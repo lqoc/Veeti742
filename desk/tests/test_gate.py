@@ -108,3 +108,10 @@ def test_learn_preset_and_live_restores_strict():
     config.set_value("scanner.min_liquidity_usd", 20000, "you")      # a value you chose yourself is kept
     config.undo_presets()
     assert config.get("scanner.min_liquidity_usd") == 20000
+
+
+def test_rules_m5_window_for_snipes():
+    config.set_value("analyst.rules_window", "m5", "test")
+    v = {"v5": 2500, "b5": 30, "s5": 10, "p5": 12.0, "v1": 100, "b1": 1, "p1": 500.0}
+    a = analyst.rules_answers(v, 0)
+    assert a == {"alive_6h": 0.5, "organic": 0.75, "flush": 0.0, "chase": 0.2}

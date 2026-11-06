@@ -17,6 +17,9 @@ def check(p: dict, price: float, now: float | None = None) -> tuple[str | None, 
     trail = bool(p.get("trail_active"))
     if price <= p["stop_price"]:
         return "stop", peak, trail
+    tp = config.get("risk.take_profit_pct")
+    if tp > 0 and price >= entry * (1 + tp / 100):
+        return "target", peak, trail
     if price >= entry * (1 + config.get("risk.trail_start_pct") / 100):
         trail = True
     if trail and price <= peak * (1 - config.get("risk.trail_pct") / 100):
@@ -30,7 +33,9 @@ def check(p: dict, price: float, now: float | None = None) -> tuple[str | None, 
 def exit_lines(p: dict) -> dict:
     trail_line = (p.get("peak_price") or p["entry_price"]) * (1 - config.get("risk.trail_pct") / 100)
     current = max(p["stop_price"], trail_line) if p.get("trail_active") else p["stop_price"]
+    tp = config.get("risk.take_profit_pct")
     return {"stop": p["stop_price"], "trail": trail_line if p.get("trail_active") else None,
+            "target": p["entry_price"] * (1 + tp / 100) if tp > 0 else None,
             "trail_starts": p["entry_price"] * (1 + config.get("risk.trail_start_pct") / 100),
             "current": current,
             "timeout_at": p["opened_at"] + config.get("risk.timeout_h") * 3600}
@@ -234,7 +239,8 @@ class Risk(Agent):
                        "VALUES(?,?,?,?,?,?,?,?,?)", (now, "stopped", p["mint"], "risk", f"Stopped {name}", sub,
                                                      f"{sign}${abs(pnl):.2f}", f"{pct:+.1f}%", p["id"]))
         else:
-            sub = {"trail": "Risk · trailing stop", "timeout": "Risk · timeout", "manual": "Risk · you sold"}.get(
+            sub = {"trail": "Risk · trailing stop", "timeout": "Risk · timeout", "manual": "Risk · you sold",
+                   "target": "Risk · take profit"}.get(
                 reason, f"Risk · {reason}")
             db.execute("INSERT INTO activity(ts, kind, mint, agent, title, subtitle, value, value2, ref_id) "
                        "VALUES(?,?,?,?,?,?,?,?,?)", (now, "sold", p["mint"], "risk", f"Sold {name}", sub,
@@ -248,7 +254,7 @@ class Risk(Agent):
         last = db.one("SELECT name, symbol, exit_reason, pnl_usd FROM positions WHERE status='closed' "
                       "ORDER BY closed_at DESC LIMIT 1")
         if last:
-            last_text = "Trailed out" if last["exit_reason"] == "trail" else (
+            last_text = "Took profit" if last["exit_reason"] == "target" else "Trailed out" if last["exit_reason"] == "trail" else (
                 "Stopped" if last["exit_reason"] in ("stop", "pulled") else "Sold")
         else:
             last_text = None
@@ -256,7 +262,8 @@ class Risk(Agent):
                 "open": [{"id": p["id"], "mint": p["mint"], "name": p["name"], "symbol": p["symbol"],
                           "pnl": book.position_value(p) - p["size_usd"]} for p in opens],
                 "last": last, "last_text": last_text, "stop_pct": config.get("risk.stop_pct"),
-                "trail_pct": config.get("risk.trail_pct"), "locked": bool(opens)}
+                "trail_pct": config.get("risk.trail_pct"), "take_profit_pct": config.get("risk.take_profit_pct"),
+                "locked": bool(opens)}
 
     def decisions(self, limit: int = 20) -> list[dict]:
         rows = db.query("SELECT * FROM positions ORDER BY COALESCE(closed_at, opened_at) DESC LIMIT ?", (limit,))

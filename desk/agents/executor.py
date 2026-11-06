@@ -145,8 +145,10 @@ class Executor(Agent):
         self.executing = {"mint": mint, "name": name, "size": size, "pct": pct, "started": time.time(),
                           "status": "executing", "id": sid}
         bus.publish("signal", {**self.executing, "link": link})
+        tp = config.get("risk.take_profit_pct")
         detail = (f"Auditor {msg['audit'].get('layersChecked', 0)}/8 · Analyst {score} · "
-                  f"stop -{config.get('risk.stop_pct'):g}% · trail {config.get('risk.trail_pct'):g}%")
+                  f"stop -{config.get('risk.stop_pct'):g}%" + (f" · target +{tp:g}%" if tp > 0 else "") +
+                  f" · trail {config.get('risk.trail_pct'):g}%")
         venue = config.get("desk.venue")
         if book.mode() == "PAPER":
             await asyncio.sleep(1.2)

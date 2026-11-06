@@ -49,8 +49,12 @@ def build_state(scan: dict, audit: dict, v: dict) -> str:
 
 def rules_answers(v: dict, bundled: int | None) -> dict:
     g = config.get
-    alive = clamp((v.get("v1") or 0) / g("analyst.rules_alive_volume_h1"))
-    organic = clamp((v.get("b1") or 0) / g("analyst.rules_organic_buys_h1"))
+    if g("analyst.rules_window") == "m5":   # sniper: a 1-3 minute old pool has no real hour yet
+        alive = clamp((v.get("v5") or 0) / g("analyst.rules_alive_volume_m5"))
+        organic = clamp((v.get("b5") or 0) / g("analyst.rules_organic_buys_m5"))
+    else:
+        alive = clamp((v.get("v1") or 0) / g("analyst.rules_alive_volume_h1"))
+        organic = clamp((v.get("b1") or 0) / g("analyst.rules_organic_buys_h1"))
     if bundled is not None and bundled >= g("analyst.rules_bundled_from"):
         organic *= g("analyst.rules_bundled_penalty")
     p5 = v.get("p5") or 0
@@ -60,7 +64,10 @@ def rules_answers(v: dict, bundled: int | None) -> dict:
         flush = 0.5
     else:
         flush = 0.0
-    chase = clamp((v.get("p1") or 0) / g("analyst.rules_chase_h1_pct"))
+    if g("analyst.rules_window") == "m5":
+        chase = clamp((v.get("p5") or 0) / g("analyst.rules_chase_m5_pct"))
+    else:
+        chase = clamp((v.get("p1") or 0) / g("analyst.rules_chase_h1_pct"))
     return {"alive_6h": round(alive, 4), "organic": round(organic, 4), "flush": flush, "chase": round(chase, 4)}
 
 

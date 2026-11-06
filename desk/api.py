@@ -92,6 +92,7 @@ async def state():
         "ticket": config.ticket_check(book.stack_value()), "ts": time.time(),
         "open_positions": len(book.open_positions(all_modes=True)),
         "stop_pct": config.get("risk.stop_pct"), "trail_pct": config.get("risk.trail_pct"),
+        "take_profit_pct": config.get("risk.take_profit_pct"), "strategy": config.strategy(),
     }
 
 
@@ -314,6 +315,21 @@ async def mode(request: Request):
         return await control.set_mode(body.get("mode"), body.get("confirm"), "app")
     except control.ControlError as e:
         return err(400, str(e))
+
+
+@app.get("/api/strategy", dependencies=A)
+async def strategy_get():
+    return {"strategy": config.strategy(), "choices": list(config.STRATEGIES)}
+
+
+@app.post("/api/strategy", dependencies=A)
+async def strategy_post(request: Request):
+    body = await request.json()
+    name = (body.get("strategy") or "").lower()
+    if name not in config.STRATEGIES:
+        return err(400, "strategy is sniper or strict")
+    changed = config.apply_preset(name, "app")
+    return {"strategy": name, "changed": changed}
 
 
 @app.post("/api/run/reset", dependencies=A)

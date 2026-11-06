@@ -20,7 +20,7 @@ set HOST=127.0.0.1
 set PORT=8000
 set TUNNEL_METRICS=http://127.0.0.1:2000
 set DESK_SITE=deed
-set DESK_PRESET=learn
+set DESK_PRESET=sniper
 start "Grok Bot desk (keep open)" /min cmd /k .venv\Scripts\python -m desk.main
 timeout /t 6 /nobreak >nul
 start "Grok Bot tunnel (keep open)" /min cmd /k tools\cloudflared.exe tunnel --no-autoupdate --metrics 127.0.0.1:2000 --url http://127.0.0.1:8000

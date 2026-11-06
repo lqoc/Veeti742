@@ -153,3 +153,22 @@ def test_live_needs_a_full_paper_night():
         run(control.set_mode("LIVE", "LIVE"))
     with pytest.raises(control.ControlError, match="type LIVE"):
         run(control.set_mode("LIVE", "live"))
+
+
+def test_take_profit_exits_at_target():
+    config.set_value("risk.take_profit_pct", 15, "test")
+    assert riskmod.check(pos(), 1.149)[0] is None
+    assert riskmod.check(pos(), 1.15)[0] == "target"
+    assert riskmod.check(pos(), 0.89)[0] == "stop"     # stop still wins first
+
+
+def test_sniper_strategy_settings_and_live_keeps_it():
+    from desk import control
+    changed = config.apply_preset("sniper", "test")
+    assert config.strategy() == "sniper" and changed
+    assert config.get("scanner.min_pool_age_min") == 1 and config.get("risk.take_profit_pct") == 15
+    assert config.get("analyst.rules_window") == "m5" and config.get("risk.poll_s") == 5
+    assert config.undo_presets() == []          # LIVE keeps a chosen strategy
+    config.apply_preset("strict", "test")
+    assert config.strategy() == "strict" and config.get("scanner.min_pool_age_min") == 10
+    assert config.get("risk.take_profit_pct") == 0 and config.get("risk.stop_pct") == 6
