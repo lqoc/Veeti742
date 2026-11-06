@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import hmac
+import json
 import logging
 import time
 from pathlib import Path
@@ -167,15 +168,29 @@ def last_audit(mint: str) -> list[dict]:
 
 
 @app.get("/api/coin/{mint}", dependencies=A)
-async def coin(mint: str):
-    viewed[mint] = time.time()
+async def coin(mint: str, fresh: bool = True):
     c = db.one("SELECT * FROM coins WHERE mint=?", (mint,)) or {"mint": mint}
-    try:
-        pairs = await sources.dex_tokens([mint])
-        record_prices(pairs)
-        v = sources.pair_view(pairs.get(mint))
-    except sources.SourceError:
-        v = {}
+    v = {}
+    if fresh:   # the app asks live; the deed.page publisher builds from what the desk already recorded
+        viewed[mint] = time.time()
+        try:
+            pairs = await sources.dex_tokens([mint])
+            record_prices(pairs)
+            v = sources.pair_view(pairs.get(mint))
+        except sources.SourceError:
+            v = {}
+    else:
+        snap = db.one("SELECT snapshot FROM scans WHERE mint=? AND snapshot IS NOT NULL ORDER BY id DESC LIMIT 1",
+                      (mint,))
+        try:
+            v = json.loads(snap["snapshot"]) if snap else {}
+        except ValueError:
+            v = {}
+        f = db.one("SELECT price, liq, mcap FROM followups WHERE mint=? ORDER BY ts DESC LIMIT 1", (mint,))
+        if f:
+            v.update({k: f[k2] for k, k2 in (("price", "price"), ("liq", "liq"), ("mcap", "mcap")) if f[k2] is not None})
+        v.setdefault("name", c.get("name"))
+        v.setdefault("symbol", c.get("symbol"))
     pos = db.one("SELECT * FROM positions WHERE mint=? AND status IN ('open','exiting') ORDER BY id DESC LIMIT 1",
                  (mint,))
     last_closed = None if pos else db.one("SELECT * FROM positions WHERE mint=? AND status='closed' "

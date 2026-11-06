@@ -94,6 +94,15 @@ def set_secret(name: str, value: str | None) -> None:
     _cache = d
 
 
+def data_path() -> str:
+    """Secret folder name for the website's data files on deed.page (DATA_PATH). Never in the repo or logs."""
+    v = get("DATA_PATH")
+    if not v:
+        v = _secrets.token_urlsafe(30).replace("-", "x").replace("_", "y")
+        set_secret("DATA_PATH", v)
+    return v
+
+
 def vapid_private_path() -> str:
     load()
     return str(db.DATA / "vapid_private.pem")
@@ -102,7 +111,7 @@ def vapid_private_path() -> str:
 def secret_values() -> list[str]:
     """Every secret value, for the leak grep (STEP 13 #7)."""
     out = []
-    for k in ("APP_TOKEN", "WALLET_KEY", "TYPESAFE_API_KEY"):
+    for k in ("APP_TOKEN", "WALLET_KEY", "TYPESAFE_API_KEY", "DEEDPAGE_TOKEN"):
         v = get(k)
         if v:
             out.append(v)

@@ -129,6 +129,9 @@ SPEC: dict[str, Spec] = {
     "desk.push_rejects": b(False, "Push rejects too"),
     "desk.fees_ref_discount": f(0.10, 0, 1, "FOMO ref discount", "x", (), 0.01),
     "desk.fomo_handle": s("", "FOMO username", ("handle",), r"^@?[A-Za-z0-9_.]{0,40}$"),
+    "desk.site": c("off", ("off", "deed"), "Publish website to deed.page", ("website", "site")),
+    "desk.site_slug": s("", "deed.page name", ("slug",), r"^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)?$"),
+    "desk.publish_s": i(75, 61, 3600, "Website update every", "s", ("publish",)),
 }
 
 GROUPS = ["scanner", "auditor", "analyst", "executor", "risk", "wallet", "desk"]
