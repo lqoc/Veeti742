@@ -14,7 +14,7 @@ import logging.handlers
 import os
 import sys
 
-from . import api, book, config, db, health, registry, tunnel, vault
+from . import api, book, config, db, health, learn, registry, tunnel, vault
 from .agents.base import LOGS
 
 
@@ -66,7 +66,8 @@ async def run() -> None:
     if w:
         log.info("ticket check: %s", w["text"])
     await asyncio.gather(server.serve(), book.sample_loop(), api.price_loop(), heartbeat_main(),
-                         health.desk_health_loop(), health.night_report_loop(), tunnel.watch())
+                         health.desk_health_loop(), health.night_report_loop(), tunnel.watch(),
+                         learn.followup_loop())
 
 
 def main() -> None:

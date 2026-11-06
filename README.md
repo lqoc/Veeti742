@@ -71,10 +71,23 @@ Phantom: Settings > Manage Accounts > pick the account > **Show Private Key** > 
 
 Fund the wallet with USDC (the trading money) and about 0.05 SOL (fees and token-account rent).
 
+## Paper trade, then export what happened
+
+The **Live | Paper** switch sits at the top of Home (and in Account). Paper trades every signal with simulated
+money on real live data. Live needs the typed `LIVE`, an imported wallet and 1 full PAPER night.
+
+After a few hours: Account > Results > **Export results** (3h / 6h / 24h / 7d), or type `export 6h`.
+You get one JSON file. For every coin the desk saw it lists the stage it reached (scanner kill, audit
+reject, analyst reject, executor skip, traded), why, what each agent saw at that moment, the trade if any,
+and what the price did **+15m / +1h / +3h / +6h** after the decision (the desk keeps following every coin
+for 6 hours, killed ones included). A summary groups it by stage: "coins killed for liquidity that doubled
+anyway" shows where filters are too strict, "traded coins that rugged" where they are too loose. Upload the
+file to Claude to tune the settings.
+
 ## Commands (Account > Talk to the desk)
 
 `status` · `buy X` (audits X, places no order) · `sell X` (button to sell now) · `why X` · `pause Scanner` /
-`resume Scanner` · `set stop to -8%` · `stack 1240` · `paper` / `LIVE` · `invite` · `report`
+`resume Scanner` · `set stop to -8%` · `stack 1240` · `paper` / `LIVE` · `invite` · `report` · `export 6h`
 
 ## Proofs captured while building (2026-11-06)
 
@@ -129,4 +142,5 @@ desk/wallet.py     encrypted key, balances                            desk/book.
 desk/config.py     every setting, ranges, change log                  desk/fields.py   raw key mapping
 desk/links.py      the only place FOMO URLs are built                 desk/report.py   morning Page
 desk/health.py     desk-health (hourly) + night-report (daily)        desk/web/        the iPhone app
+desk/learn.py      6h outcome tracking + results export
 ```

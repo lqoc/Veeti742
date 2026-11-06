@@ -11,8 +11,8 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import (book, bus, commands, config, control, db, fields, links, notifier, registry, sources, vault, wallet,
-               webpush)
+from . import (book, bus, commands, config, control, db, fields, learn, links, notifier, registry, sources, vault,
+               wallet, webpush)
 from .agents.auditor import LAYERS
 from .agents.risk import exit_lines
 from .agents.scanner import record_prices
@@ -408,6 +408,15 @@ async def signal_action(sid: int, action: str):
         ex.tap_skip(sid)
         return {"ok": True}
     return err(404, "bought or skip")
+
+
+@app.get("/api/export", dependencies=A)
+async def export(hours: float = 24.0):
+    """Everything the desk saw and did, with what each coin did afterwards. For tuning the settings."""
+    hours = max(0.25, min(hours, 24 * 14))
+    data = learn.export(hours)
+    name = time.strftime("grokbot-results-%Y%m%d-%H%M.json", time.gmtime())
+    return JSONResponse(data, headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 
 # ------------------------------------------------------------------ push / notifications / commands / search

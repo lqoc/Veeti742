@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import time
 
 import httpx
@@ -174,10 +175,10 @@ class Analyst(Agent):
         db.execute("UPDATE coins SET price_at_analyst=? WHERE mint=?", (v.get("price"), mint))
         out = {"agent": "analyst", "mint": mint, "answers": answers, "score": score if answers else 0,
                "passed": passed, "failed": failed, "model": model, "inputTokens": tokens}
-        db.execute("INSERT INTO verdicts(mint, ts, alive_6h, organic, flush, chase, score, pass, reason, input_tokens, model) "
-                   "VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+        db.execute("INSERT INTO verdicts(mint, ts, alive_6h, organic, flush, chase, score, pass, reason, input_tokens, model, "
+                   "snapshot) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
                    (mint, time.time(), *(answers[k] if answers else None for k in QUESTIONS), out["score"],
-                    int(passed), failed[0] if failed else None, tokens, model))
+                    int(passed), failed[0] if failed else None, tokens, model, json.dumps(v)))
         h = hashlib.sha256(state.encode()).hexdigest()[:12]
         self.log.info("%s state=%s %s score=%s %s tokens=%s", mint, h, answers, out["score"],
                       "PASS" if passed else f"REJECT {failed}", tokens)

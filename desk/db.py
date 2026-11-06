@@ -64,7 +64,15 @@ CREATE TABLE IF NOT EXISTS reports (
   id TEXT PRIMARY KEY, ts REAL, mode TEXT, night_start REAL, path TEXT
 );
 CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY, ts REAL, kind TEXT, detail TEXT);
+CREATE TABLE IF NOT EXISTS followups (mint TEXT, ts REAL, price REAL, liq REAL, mcap REAL, volume_m5 REAL);
+CREATE INDEX IF NOT EXISTS followups_mint_ts ON followups(mint, ts);
 """
+
+# Columns added after the first release; connect() adds any that an older database is missing.
+MIGRATIONS = [
+    ("scans", "snapshot", "TEXT"),      # DexScreener numbers Scanner saw when it decided
+    ("verdicts", "snapshot", "TEXT"),   # DexScreener numbers Analyst saw when it scored
+]
 
 _conn: sqlite3.Connection | None = None
 _lock = threading.RLock()
@@ -80,6 +88,10 @@ def connect(path: str | Path | None = None) -> sqlite3.Connection:
     _conn.execute("PRAGMA journal_mode=WAL")
     _conn.execute("PRAGMA synchronous=NORMAL")
     _conn.executescript(SCHEMA)
+    for table, col, typ in MIGRATIONS:
+        cols = {r[1] for r in _conn.execute(f"PRAGMA table_info({table})")}
+        if col not in cols:
+            _conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typ}")
     return _conn
 
 

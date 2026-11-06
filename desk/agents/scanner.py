@@ -205,9 +205,9 @@ class Scanner(Agent):
                "pool": (v or {}).get("pair") or c.get("pool"), "liquidityUsd": (v or {}).get("liq"),
                "top10Pct": top10, "h1ChangePct": (v or {}).get("p1"), "ageMin": int(age),
                "verdict": "pass" if verdict == "pass" else "kill", "reason": reason, "ts": iso(now)}
-        db.execute("INSERT INTO scans(mint, ts, liquidity_usd, top10_pct, h1_change_pct, age_min, verdict, reason) "
-                   "VALUES(?,?,?,?,?,?,?,?)", (mint, now, out["liquidityUsd"], top10, out["h1ChangePct"],
-                                              age, verdict, reason))
+        db.execute("INSERT INTO scans(mint, ts, liquidity_usd, top10_pct, h1_change_pct, age_min, verdict, reason, "
+                   "snapshot) VALUES(?,?,?,?,?,?,?,?,?)", (mint, now, out["liquidityUsd"], top10, out["h1ChangePct"],
+                                                          age, verdict, reason, json.dumps(v) if v else None))
         self.log.info("%s %s %s %s liq=%s top10=%s h1=%s age=%.0f", out["ts"], mint, verdict, reason,
                       out["liquidityUsd"], top10, out["h1ChangePct"], age)
         bus.publish("scan", out)

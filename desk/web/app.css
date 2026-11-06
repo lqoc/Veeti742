@@ -248,6 +248,10 @@ textarea.secret { width: 100%; min-height: 96px; border-radius: 12px; border: 0;
 .sgroup[open] .list { border-radius: 0 0 14px 14px; border-top: .5px solid var(--sep); }
 .sgroup summary .muted { margin-left: auto; font-weight: 400; font-size: 15px; }
 
+.home-mode { width: 168px; margin: 2px 0 6px; }
+.home-mode button { height: 32px; font-size: 15px; }
+.seg.mode button.on.paper, .seg.mode button.on.live { color: #000; }
+
 /* goal bar */
 .goal { position: fixed; left: 0; right: 0; bottom: var(--tab); z-index: 18; background: rgba(0,0,0,.82);
   backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);

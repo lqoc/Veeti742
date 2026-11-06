@@ -12,7 +12,7 @@ from . import book, config, control, db, links, notifier, registry
 from .agents.base import short
 
 HELP = ("Commands: buy X · sell X · why X · pause Scanner · resume Scanner · set stop to -8% · "
-        "stack 1240 · status · paper · live · invite · report")
+        "stack 1240 · status · paper · live · invite · report · export")
 
 
 def coin_btn(c: dict, label: str = "Open on FOMO") -> dict:
@@ -68,6 +68,11 @@ async def handle(text: str) -> dict:
         return reply("Last morning report", [{"label": "Open report", "url": f"/report/{r['id']}"}])
     if low == "status":
         return status()
+    if low.startswith("export"):
+        m = re.match(r"^export(?:\s+(\d+(?:\.\d+)?)\s*h?)?$", low)
+        hrs = m.group(1) if m and m.group(1) else "24"
+        return reply(f"Results of the last {hrs}h: every coin, why it stopped, and what it did after.",
+                     [{"label": "Download results", "export": float(hrs)}])
     m = re.match(r"^(pause|resume)\s+(\w+)$", low)
     if m:
         try:

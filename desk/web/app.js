@@ -232,6 +232,42 @@
     window.open(u, "_blank", "noopener");
   }
 
+  // ------------------------------------------------------------ mode switch (Home + Account) and results export
+  function switchMode(target, after) {
+    const cur = S.state ? S.state.mode : (S.account || {}).mode;
+    if (target === cur) return;
+    if (target === "LIVE") {
+      const venue = (S.state || S.account || {}).venue;
+      confirmType("Switch to LIVE", venue === "wallet"
+        ? "The agents will buy and sell with real USDC from your imported wallet (score tiers $0.50–$4, max 3 open, keeps $1 USDC). Type LIVE to confirm."
+        : "Buy on FOMO buttons become real trades. Type LIVE to confirm.", "LIVE",
+        async () => { await post("/api/mode", { mode: "LIVE", confirm: "LIVE" }); await refreshState(); if (after) after(); });
+    } else {
+      post("/api/mode", { mode: "PAPER" }).then(async () => { toast("Paper trading"); await refreshState(); if (after) after(); })
+        .catch((err) => toast(err.message, 4000));
+    }
+  }
+
+  async function exportResults(hours) {
+    try {
+      toast("Preparing results...");
+      const r = await fetch(`/api/export?hours=${hours || 24}`, { headers: { Authorization: "Bearer " + TOKEN }, cache: "no-store" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const blob = await r.blob();
+      const m = (r.headers.get("content-disposition") || "").match(/filename="([^"]+)"/);
+      const name = m ? m[1] : "grokbot-results.json";
+      const file = new File([blob], name, { type: "application/json" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); return; }
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+    } catch (e) { if (e.name !== "AbortError") toast("Export failed: " + e.message, 4000); }
+  }
+
   // ------------------------------------------------------------ HOME
   function viewHome() {
     const v = $("#view");
@@ -241,6 +277,7 @@
         <button class="iconbtn" data-search aria-label="Search">${ICON.search}</button>
         <a class="iconbtn" href="#/notifications" aria-label="Notifications">${ICON.bell}<span class="dot" id="h-dot" hidden></span></a></div>
       <div class="ticker" id="h-ticker"></div>
+      <div class="seg mode home-mode" id="h-mode"><button data-mode="LIVE">Live</button><button data-mode="PAPER">Paper</button></div>
       <div class="eyebrow" id="h-eyebrow">&nbsp;</div>
       <div class="balance-row"><div class="big odo" id="h-bal"><div class="sk" style="height:66px;width:220px"></div></div><span id="h-badge"></span></div>
       <div class="change" id="h-change"></div>
@@ -253,6 +290,7 @@
       <div class="list" id="h-act">${skeleton(3, 50)}</div>
       <div class="goal" id="h-goal"></div>`;
     $("[data-search]", v).onclick = openSearch;
+    $("#h-mode").onclick = (e) => { const b = e.target.closest("[data-mode]"); if (b) switchMode(b.dataset.mode, drawHome); };
     $("#h-ranges").onclick = (e) => {
       const b = e.target.closest("[data-range]"); if (!b) return;
       S.range = b.dataset.range;
@@ -272,6 +310,7 @@
     if (!st || current !== "home") return;
     const b = st.breakdown;
     $("#h-dot").hidden = !st.unread;
+    $$("#h-mode button").forEach((b) => { b.className = b.dataset.mode === st.mode ? "on " + st.mode.toLowerCase() : ""; });
     $("#h-eyebrow").textContent = `Equity · started with ${usd(b.start)}`;
     odoSet($("#h-bal"), usd(st.balance));
     $("#h-badge").innerHTML = paperBadge();
@@ -689,6 +728,10 @@
       <div class="list plain"><form class="cmd" id="cmd"><input placeholder="status · why X · set stop to -8%" autocomplete="off" autocapitalize="off"><button>Send</button></form>
         <div class="replies" id="replies">${S.replies.map(replyHtml).join("")}</div></div>
 
+      <div class="group-h">Results</div>
+      <div class="list plain"><div class="field"><div class="lbl">Export results<small>Every coin, why it stopped, and what its price did over the next 6h. Send the file back to Claude to tune the settings.</small></div></div>
+        <div class="seg" id="export" style="margin:0 14px 12px"><button data-hours="3">3h</button><button data-hours="6">6h</button><button data-hours="24">24h</button><button data-hours="168">7d</button></div></div>
+
       <div class="group-h">Analyst brain</div>
       <div class="list plain"><div class="field"><div class="lbl">Jev key<small>${a.jev ? "set · analyst mode " + esc(a.analyst_mode) : "not set · rules mode"}</small></div><button class="linkbtn" id="jev">${a.jev ? "Remove" : "Add key"}</button></div></div>
 
@@ -707,20 +750,17 @@
 
   function replyHtml(r) {
     if (r.me) return `<div class="reply me">${esc(r.text)}</div>`;
-    const btns = (r.buttons || []).map((b) => b.url ? `<a href="${esc(b.url)}" ${b.url.startsWith("/") ? "" : 'target="_blank" rel="noopener"'}>${esc(b.label)}</a>` : `<button data-action="${esc(b.action)}">${esc(b.label)}</button>`).join("");
+    const btns = (r.buttons || []).map((b) => b.url ? `<a href="${esc(b.url)}" ${b.url.startsWith("/") ? "" : 'target="_blank" rel="noopener"'}>${esc(b.label)}</a>`
+      : b.export ? `<button data-export="${esc(b.export)}">${esc(b.label)}</button>` : `<button data-action="${esc(b.action)}">${esc(b.label)}</button>`).join("");
     return `<div class="reply">${esc(r.text)}${btns ? `<div class="btns">${btns}</div>` : ""}</div>`;
   }
 
   function bindAccount() {
-    $("#mode").onclick = async (e) => {
+    $("#mode").onclick = (e) => {
       const b = e.target.closest("[data-mode]"); if (!b || b.dataset.mode === S.account.mode) return;
-      if (b.dataset.mode === "LIVE") {
-        confirmType("Switch to LIVE", S.account.venue === "wallet" ? "The agents will buy and sell with real USDC from your imported wallet (score tiers $0.50–$4, max 3 open, keeps $1 USDC). Type LIVE to confirm." : "Buy on FOMO buttons become real trades. Type LIVE to confirm.", "LIVE",
-          async () => { await post("/api/mode", { mode: "LIVE", confirm: "LIVE" }); await viewAccount(); });
-      } else {
-        try { await post("/api/mode", { mode: "PAPER" }); await viewAccount(); } catch (err) { toast(err.message); }
-      }
+      switchMode(b.dataset.mode, () => viewAccount());
     };
+    $("#export").onclick = (e) => { const b = e.target.closest("[data-hours]"); if (b) exportResults(+b.dataset.hours); };
     const imp = $("#w-import");
     if (imp) imp.onclick = () => sheet(`<h3>Import wallet</h3>
       <p>Paste the private key of a <b>fresh wallet you use only for this bot</b>, holding only what you can afford to lose. Phantom: Settings › Manage Accounts › the account › Show Private Key. Never paste a recovery phrase.</p>
@@ -756,6 +796,7 @@
       $("#replies").innerHTML = S.replies.map(replyHtml).join("");
     };
     $("#replies").onclick = async (e) => {
+      const ex = e.target.closest("[data-export]"); if (ex) { exportResults(+ex.dataset.export); return; }
       const b = e.target.closest("[data-action]"); if (!b) return;
       confirmType("Sell now", "Sells this position at market now.", "SELL", async () => { await post(b.dataset.action); toast("Selling..."); });
     };
