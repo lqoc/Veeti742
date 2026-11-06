@@ -36,13 +36,14 @@ async def set_mode(target: str, confirm: str | None, who: str = "app") -> dict:
         if config.get("desk.venue") == "wallet":
             if not wallet.pubkey():
                 raise ControlError("import a wallet first (Account tab)")
+    restored = config.undo_presets() if target == "LIVE" else []
     config.set_value("desk.mode", target, who)
     if target == "LIVE" and config.get("desk.venue") == "wallet":
         await book.refresh_wallet()
     if book.run_start() == 0:
         book.start_run()
     bus.publish("mode", {"mode": target})
-    return {"mode": target, "changed": True}
+    return {"mode": target, "changed": True, "restored": restored}
 
 
 def set_paused(name: str, paused: bool) -> dict:

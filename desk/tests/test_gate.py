@@ -96,3 +96,15 @@ def test_state_text_has_no_thresholds_or_buy():
                              "v1": 7, "p1": 8})
     assert "buy " not in s.lower().replace("buys", "") and "0.70" not in s and "70" not in s.split("Liquidity")[0]
     assert len(s) <= 3000
+
+
+def test_learn_preset_and_live_restores_strict():
+    config.apply_preset("learn", "test")
+    assert config.get("scanner.min_liquidity_usd") == 15000
+    restored = config.undo_presets()
+    assert config.get("scanner.min_liquidity_usd") == 40000 and config.get("analyst.rules_chase_h1_pct") == 80
+    assert len(restored) == 3
+    config.apply_preset("learn", "test")
+    config.set_value("scanner.min_liquidity_usd", 20000, "you")      # a value you chose yourself is kept
+    config.undo_presets()
+    assert config.get("scanner.min_liquidity_usd") == 20000

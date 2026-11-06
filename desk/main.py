@@ -41,6 +41,11 @@ def boot() -> None:
     if book.run_start() == 0:
         book.start_run()
     book.night_start()
+    preset = os.environ.get("DESK_PRESET", "").strip().lower()   # e.g. "learn", applied once
+    if preset in config.PRESETS and db.state_get("preset_env") != preset and config.get("desk.mode") == "PAPER":
+        for line in config.apply_preset(preset, "env"):
+            logging.getLogger("main").info("paper preset: %s", line)
+        db.state_set("preset_env", preset)
     site = os.environ.get("DESK_SITE", "").strip().lower()   # deploy scripts turn the website on once
     if site in ("off", "deed") and db.state_get("site_env") != site:
         config.set_value("desk.site", site, "env")

@@ -17,6 +17,7 @@ services:
       - ./desk/logs:/app/desk/logs
     environment:
       - TUNNEL_METRICS=http://tunnel:2000
+      - DESK_PRESET=${DESK_PRESET:-learn}       # looser PAPER filters so paper trades happen; LIVE restores the strict ones
       - DESK_SITE=${DESK_SITE:-deed}          # publish the read-only website to deed.page (off to stop)
       - VAPID_SUB=${VAPID_SUB:-mailto:grok-desk@example.com}
     expose:

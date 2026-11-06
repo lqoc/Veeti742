@@ -134,6 +134,36 @@ SPEC: dict[str, Spec] = {
     "desk.publish_s": i(75, 61, 3600, "Website update every", "s", ("publish",)),
 }
 
+# PAPER learning preset: looser filters so paper trades actually happen and the export has data.
+# Fresh PumpSwap pools start around $15-30K liquidity and are often +100% or more in their first hour.
+# Switching to LIVE puts every key still at its preset value back to the strict default above.
+PRESETS = {
+    "learn": {
+        "scanner.min_liquidity_usd": 15000.0,
+        "scanner.max_h1_change_pct": 400.0,
+        "analyst.rules_chase_h1_pct": 400.0,
+    },
+}
+
+
+def apply_preset(name: str, who: str = "preset") -> list[str]:
+    out = []
+    for k, v in PRESETS[name].items():
+        old, new = set_value(k, v, who)
+        out.append(f"{k} {display(k, old)} -> {display(k, new)}")
+    return out
+
+
+def undo_presets(who: str = "live-switch") -> list[str]:
+    out = []
+    for preset in PRESETS.values():
+        for k, v in preset.items():
+            if get(k) == v and v != SPEC[k].default:
+                set_value(k, SPEC[k].default, who)
+                out.append(f"{k} back to {display(k, SPEC[k].default)}")
+    return out
+
+
 GROUPS = ["scanner", "auditor", "analyst", "executor", "risk", "wallet", "desk"]
 # Keys the app may not change through POST /api/settings (they have their own flow).
 GUARDED = {"desk.mode"}
