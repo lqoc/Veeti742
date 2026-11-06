@@ -25,6 +25,12 @@ main() {
 }
 
 say() { printf '%s\n' "$*" >&3; }
+fail() {
+  say ""
+  say "Something failed. Last lines of $LOG:"
+  tail -n 15 "$LOG" >&3 2>/dev/null || true
+  say "Send these lines to Claude."
+}
 
 link() {
   cd "$DIR"
@@ -70,6 +76,7 @@ update() {
 install() {
   if [ "$(id -u)" != 0 ]; then say "Run it with sudo."; return 1; fi
   exec 1>>"$LOG" 2>&1
+  trap fail ERR
   echo "== install $(date -u)"
   say "Installing Grok Bot (3-6 minutes). Details: $LOG"
   export DEBIAN_FRONTEND=noninteractive
