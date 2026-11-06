@@ -10,8 +10,12 @@ class ControlError(ValueError):
     pass
 
 
+FULL_NIGHT_S = 6 * 3600
+
+
 def paper_nights() -> int:
-    return db.scalar("SELECT COUNT(*) FROM reports WHERE mode='PAPER'", (), 0)
+    """Morning reports that closed a PAPER night of at least 6 hours."""
+    return db.scalar("SELECT COUNT(*) FROM reports WHERE mode='PAPER' AND ts - night_start >= ?", (FULL_NIGHT_S,), 0)
 
 
 async def set_mode(target: str, confirm: str | None, who: str = "app") -> dict:
@@ -28,7 +32,7 @@ async def set_mode(target: str, confirm: str | None, who: str = "app") -> dict:
         if confirm != "LIVE":
             raise ControlError("type LIVE to confirm")
         if paper_nights() < 1:
-            raise ControlError("LIVE needs at least 1 full PAPER night first (the morning report closes a night)")
+            raise ControlError("LIVE needs at least 1 full PAPER night first (6h+, closed by the morning report)")
         if config.get("desk.venue") == "wallet":
             if not wallet.pubkey():
                 raise ControlError("import a wallet first (Account tab)")

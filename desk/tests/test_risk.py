@@ -138,3 +138,18 @@ def test_paper_pnl_counts_fees_both_sides():
     q = db.one("SELECT * FROM positions WHERE id=?", (pid,))
     assert abs(q["pnl_usd"] - (3.0 - 2.0 - 0.02)) < 1e-9
     assert abs(book.paper_cash() - (cash0 - 2.01 + 3.0 - 0.01)) < 1e-9
+
+
+def test_live_needs_a_full_paper_night():
+    import pytest
+    from desk import control
+    db.execute("INSERT INTO reports(id, ts, mode, night_start, path) VALUES('short', ?, 'PAPER', ?, '')",
+               (time.time(), time.time() - 1800))
+    with pytest.raises(control.ControlError, match="full PAPER night"):
+        run(control.set_mode("LIVE", "LIVE"))
+    db.execute("INSERT INTO reports(id, ts, mode, night_start, path) VALUES('full', ?, 'PAPER', ?, '')",
+               (time.time(), time.time() - 7 * 3600))
+    with pytest.raises(control.ControlError, match="import a wallet"):
+        run(control.set_mode("LIVE", "LIVE"))
+    with pytest.raises(control.ControlError, match="type LIVE"):
+        run(control.set_mode("LIVE", "live"))

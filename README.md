@@ -27,7 +27,7 @@ Every number is a setting in the Account tab (slider + exact field).
 
 - This trades real money on very risky coins. Most memecoins go to zero. Use a **fresh wallet that only holds what you can lose**.
 - The private key lives encrypted on the machine that runs the desk. Anyone who controls that machine can use it.
-- LIVE unlocks only after 1 full PAPER night (closed by the morning report) and typing `LIVE`.
+- LIVE unlocks only after 1 full PAPER night (6 hours or more, closed by the morning report) and typing `LIVE`.
 - The FOMO links in this app carry the referral code `savipww` from the original prompt. If that code isn't yours, it credits whoever wrote the prompt.
 
 ## Run it on your VM (Docker, with a Cloudflare tunnel)

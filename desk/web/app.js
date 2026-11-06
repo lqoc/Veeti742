@@ -660,7 +660,7 @@
     $("#acc").innerHTML = `
       <div class="group-h">Mode</div>
       <div class="seg mode" id="mode"><button class="${a.mode === "PAPER" ? "on paper" : ""}" data-mode="PAPER">PAPER</button><button class="${a.mode === "LIVE" ? "on live" : ""}" data-mode="LIVE">LIVE</button></div>
-      <p class="muted" style="font-size:13px;margin:8px 4px">${a.mode === "PAPER" ? `PAPER simulates every trade. LIVE ${a.venue === "wallet" ? "buys and sells from your imported wallet" : "sends Buy on FOMO buttons"}. ${a.live_allowed ? "" : "LIVE unlocks after 1 full PAPER night (the morning report closes it)."}` : "LIVE: real money."}</p>
+      <p class="muted" style="font-size:13px;margin:8px 4px">${a.mode === "PAPER" ? `PAPER simulates every trade. LIVE ${a.venue === "wallet" ? "buys and sells from your imported wallet" : "sends Buy on FOMO buttons"}. ${a.live_allowed ? "" : "LIVE unlocks after 1 full PAPER night (6h+, closed by the morning report)."}` : "LIVE: real money."}</p>
       ${a.ticket ? `<p class="${a.ticket.level === "warn" ? "danger" : "warn"}" style="font-size:14px;margin:4px">${esc(a.ticket.text)}</p>` : ""}
 
       <div class="group-h">Your wallet</div>
