@@ -438,7 +438,7 @@
       const locked = a.name === "risk" && a.locked;
       const down = a.beat_age > 120;
       const rows = (S.decisions[a.name] || []).map((d) => `<div class="dec"><span class="tm">${d.ts ? hm(d.ts) : ""}</span>
-        <span class="cn">${d.mint ? `<a href="${a.name === "auditor" ? "#/audit/" : "#/coin/"}${d.mint}">${esc(d.symbol || d.name || short(d.mint))}</a> <a class="faint" href="${esc(d.link)}" target="_blank" rel="noopener">FOMO ↗</a>` : ""}</span>
+        <span class="cn">${d.mint ? `<a href="${a.name === "auditor" ? "#/audit/" : "#/coin/"}${d.mint}">${esc(d.symbol || d.name || short(d.mint))}</a> <a class="faint" href="${esc(d.link)}" target="_blank" rel="noopener" aria-label="Open on FOMO">↗</a>` : ""}</span>
         <span class="vd ${esc(d.verdict)}">${esc(d.verdict)}</span><span class="rs">${esc(d.reason)}</span></div>`).join("");
       return `<section class="agent-full"><div class="top"><span class="ico" style="width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:${COLOR[a.name]}">${ICON[a.name].replace("<svg", '<svg style="width:22px;height:22px;fill:none;stroke:#000;stroke-width:2.2"')}</span>
         <div class="mid"><h3>${NAMES[a.name]}</h3><div class="muted" style="font-size:14px"><span class="statusdot ${a.paused ? "paused" : down ? "down" : ""}"></span>${a.paused ? "paused" : down ? "not responding" : "running"} · ${a.count} today</div></div>
