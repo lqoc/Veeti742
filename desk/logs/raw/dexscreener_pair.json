@@ -1,0 +1,210 @@
+[
+ {
+  "chainId": "solana",
+  "dexId": "pumpswap",
+  "url": "https://dexscreener.com/solana/ah2vqntcxp4emrdh2plstizyhtkvedkwadnq7i9nzdsw",
+  "pairAddress": "AH2vQnTcxp4EMrDh2PLSTiZYhTKVEDKWAdNQ7i9nZDSw",
+  "baseToken": {
+   "address": "ag45Z2EKBhDNiJmh8iDvXqSQPGsKk35SsMvQi8Vpump",
+   "name": "Labs",
+   "symbol": "Labs"
+  },
+  "quoteToken": {
+   "address": "So11111111111111111111111111111111111111112",
+   "name": "Wrapped SOL",
+   "symbol": "SOL"
+  },
+  "priceNative": "0.00000005397",
+  "priceUsd": "0.000004817",
+  "txns": {
+   "m5": {
+    "buys": 57,
+    "sells": 99
+   },
+   "h1": {
+    "buys": 773,
+    "sells": 658
+   },
+   "h6": {
+    "buys": 773,
+    "sells": 658
+   },
+   "h24": {
+    "buys": 773,
+    "sells": 658
+   }
+  },
+  "volume": {
+   "h24": 55935.02,
+   "h6": 55935.02,
+   "h1": 55935.02,
+   "m5": 3551.04
+  },
+  "priceChange": {
+   "m5": -16.34,
+   "h1": -94.49,
+   "h6": -94.49,
+   "h24": -94.49
+  },
+  "liquidity": {
+   "usd": 3958.91,
+   "base": 573481077,
+   "quote": 13.4036
+  },
+  "fdv": 4781,
+  "marketCap": 4781,
+  "pairCreatedAt": 1793941287000,
+  "info": {
+   "imageUrl": "https://cdn.dexscreener.com/cms/images/7X62H0fD9VhSkCKp?width=800&height=800&quality=95&format=auto",
+   "openGraph": "https://cdn.dexscreener.com/token-images/og/solana/ag45Z2EKBhDNiJmh8iDvXqSQPGsKk35SsMvQi8Vpump?timestamp=1793942400000",
+   "websites": [],
+   "socials": [
+    {
+     "url": "https://x.com/ZzzzzSol/status/2118568800060649753",
+     "type": "twitter"
+    }
+   ]
+  }
+ },
+ {
+  "chainId": "solana",
+  "dexId": "pumpswap",
+  "url": "https://dexscreener.com/solana/ahym5tfzm45gvwwe1dhthaphd1v7sucfppqkaip4yjxa",
+  "pairAddress": "AHym5tFZM45gVWwe1DHthAPHD1V7SuCfppqKAiP4YJxA",
+  "baseToken": {
+   "address": "2NgdUjFYoU5TWvEMu91rw3oYegvmERtiPcYRKVcBpump",
+   "name": "Daycare Centers",
+   "symbol": "Daycare"
+  },
+  "quoteToken": {
+   "address": "So11111111111111111111111111111111111111112",
+   "name": "Wrapped SOL",
+   "symbol": "SOL"
+  },
+  "priceNative": "0.0000002479",
+  "priceUsd": "0.00002212",
+  "txns": {
+   "m5": {
+    "buys": 112,
+    "sells": 107
+   },
+   "h1": {
+    "buys": 145,
+    "sells": 130
+   },
+   "h6": {
+    "buys": 145,
+    "sells": 130
+   },
+   "h24": {
+    "buys": 145,
+    "sells": 130
+   }
+  },
+  "volume": {
+   "h24": 8255.42,
+   "h6": 8255.42,
+   "h1": 8255.42,
+   "m5": 6019.32
+  },
+  "priceChange": {
+   "m5": -38.63,
+   "h1": -40.33,
+   "h6": -40.33,
+   "h24": -40.33
+  },
+  "liquidity": {
+   "usd": 10229.68,
+   "base": 267242836,
+   "quote": 48.3591
+  },
+  "fdv": 22091,
+  "marketCap": 22091,
+  "pairCreatedAt": 1793942149000,
+  "info": {
+   "imageUrl": "https://cdn.dexscreener.com/cms/images/krMJ3ANOMRKurhik?width=800&height=800&quality=95&format=auto",
+   "header": "https://cdn.dexscreener.com/cms/images/tgdGIiSSA1QEqXS7?width=1500&height=500&quality=95&format=auto",
+   "openGraph": "https://cdn.dexscreener.com/token-images/og/solana/2NgdUjFYoU5TWvEMu91rw3oYegvmERtiPcYRKVcBpump?timestamp=1793942400000",
+   "websites": [
+    {
+     "url": "https://x.com/search?q=%20Daycare%20Centers&src=typed_query&f=live",
+     "label": "Website"
+    }
+   ],
+   "socials": [
+    {
+     "url": "https://x.com/DarwinXbt/status/2118559487866855579",
+     "type": "twitter"
+    }
+   ]
+  }
+ },
+ {
+  "chainId": "solana",
+  "dexId": "pumpswap",
+  "url": "https://dexscreener.com/solana/8ro6wxgzyfy2ndbp685hbtcxl5k5ezqdfqw3hjrnehkq",
+  "pairAddress": "8ro6WxGZyFY2NdbP685hBTcxL5k5EzQdfQW3HJrnEhKQ",
+  "baseToken": {
+   "address": "6RDff7NwDJFX9zLg53RJNPsWpdfRs1xxDxivhL3Ypump",
+   "name": "Bill",
+   "symbol": "Bill"
+  },
+  "quoteToken": {
+   "address": "So11111111111111111111111111111111111111112",
+   "name": "Wrapped SOL",
+   "symbol": "SOL"
+  },
+  "priceNative": "0.0000005002",
+  "priceUsd": "0.00004465",
+  "txns": {
+   "m5": {
+    "buys": 197,
+    "sells": 116
+   },
+   "h1": {
+    "buys": 8218,
+    "sells": 6063
+   },
+   "h6": {
+    "buys": 8468,
+    "sells": 6202
+   },
+   "h24": {
+    "buys": 8468,
+    "sells": 6202
+   }
+  },
+  "volume": {
+   "h24": 569291.37,
+   "h6": 569291.37,
+   "h1": 558747.36,
+   "m5": 11049.63
+  },
+  "priceChange": {
+   "m5": 20.71,
+   "h1": 38.66,
+   "h6": 19.79,
+   "h24": 19.79
+  },
+  "liquidity": {
+   "usd": 15918.99,
+   "base": 195304154,
+   "quote": 80.6547
+  },
+  "fdv": 42770,
+  "marketCap": 42770,
+  "pairCreatedAt": 1793938831000,
+  "info": {
+   "imageUrl": "https://cdn.dexscreener.com/cms/images/QG0E7BZRmALaaU9q?width=800&height=800&quality=95&format=auto",
+   "header": "https://cdn.dexscreener.com/cms/images/KL9C-xIfiXkLUJ22?width=1500&height=500&quality=95&format=auto",
+   "openGraph": "https://cdn.dexscreener.com/token-images/og/solana/6RDff7NwDJFX9zLg53RJNPsWpdfRs1xxDxivhL3Ypump?timestamp=1793942400000",
+   "websites": [],
+   "socials": [
+    {
+     "url": "https://x.com/i/communities/2038621150729670841",
+     "type": "twitter"
+    }
+   ]
+  }
+ }
+]

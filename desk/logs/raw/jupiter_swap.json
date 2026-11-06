@@ -1,0 +1,24 @@
+{
+ "swapTransaction": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...",
+ "lastValidBlockHeight": 444010036,
+ "prioritizationFeeLamports": 199999,
+ "computeUnitLimit": 1400000,
+ "loadedAccountsDataSize": 0,
+ "loadedAccountsDataSizeLimit": null,
+ "transactionVersion": 0,
+ "prioritizationType": {
+  "computeBudget": {
+   "microLamports": 142857,
+   "estimatedMicroLamports": 795025
+  }
+ },
+ "simulationSlot": 465990266,
+ "dynamicSlippageReport": null,
+ "simulationError": {
+  "errorCode": "TRANSACTION_ERROR",
+  "error": "Attempt to debit an account but found no record of a prior credit."
+ },
+ "addressesByLookupTableAddress": null,
+ "timeTaken": 0.022354961,
+ "createAtaTimeTaken": 0.011242982
+}

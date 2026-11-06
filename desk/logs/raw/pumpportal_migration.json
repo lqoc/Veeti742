@@ -1,0 +1,29 @@
+[
+ {
+  "message": "Subscribed to 'migration' events."
+ },
+ {
+  "signature": "3CHvgcZfnSuUyrvWxoDvojbUJXMEHZrqU8ogRNwNY4Bvz34ANRGT4ieVLZmZXTBbyUGSjYVfeQNBWRZGMkhgZgFq",
+  "mint": "8Q5FLYVt9SLgnCV4bumS1BcAopqzaZW6a3aYKHespump",
+  "txType": "migrate",
+  "pool": "pump-amm"
+ },
+ {
+  "signature": "2e8MskjHrsdtm6NYks8R7w26MaBWBXgnm7bWkwgMYkjkrRmKpJJ74xSWJf2zDudivFxPDtTV2yU9EM85oEeXT9Rp",
+  "mint": "DfQQ81frDoXz1Qppo4oMXXfGLAvRPgwLkbeyecdEpump",
+  "txType": "migrate",
+  "pool": "pump-amm"
+ },
+ {
+  "signature": "mCAP6cn6GuJwTPL4HUehJ7emY7aTQ69fbVQBwE5iuzBCVZHNdtLc1fta8zsGm1daJGefMbqW84RQwE4EtSNrezN",
+  "mint": "5soCV4kbAtXo6AWpbbbdWd62iFMBiAJCBquKrRnDpump",
+  "txType": "migrate",
+  "pool": "pump-amm"
+ },
+ {
+  "signature": "57ZMpVDU7Up2kJvV49Cwz2rQ2MQmjMtrmXQ8Q8S2gZoNUbT7tex5bHxcZNUFYjSqiwbufv9kYT6k6RWsLa74UzYN",
+  "mint": "7kpcMCFQTTmKaeLKoCz1QVt7Vi5tBj4JrEqMj5Fkpump",
+  "txType": "migrate",
+  "pool": "pump-amm"
+ }
+]

@@ -1,0 +1,26 @@
+# One always-on desk + a Cloudflare tunnel that gives it a public HTTPS URL. No open ports needed.
+#   docker compose up -d --build
+#   docker compose logs tunnel | grep trycloudflare               -> your URL (quick tunnel)
+#   docker compose exec desk python -m desk.main --print-login    -> the one-time iPhone login link
+# Quick tunnel = free, no account, but the URL changes whenever the tunnel restarts.
+# For a URL that never changes, create a tunnel in Cloudflare Zero Trust (Networks > Tunnels), point its
+# public hostname at http://desk:8000, and put this line in .env (never commit .env):
+#   TUNNEL_COMMAND=tunnel --no-autoupdate --metrics 0.0.0.0:2000 run --token <your tunnel token>
+services:
+  desk:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+      - ./desk/logs:/app/desk/logs
+    environment:
+      - TUNNEL_METRICS=http://tunnel:2000
+      - VAPID_SUB=${VAPID_SUB:-mailto:grok-desk@example.com}
+    expose:
+      - "8000"
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: ${TUNNEL_COMMAND:-tunnel --no-autoupdate --metrics 0.0.0.0:2000 --url http://desk:8000}
+    depends_on: [desk]

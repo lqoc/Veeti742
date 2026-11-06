@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Grok Bot">
+<meta name="theme-color" content="#000000">
+<title>Grok Bot</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div id="offline" class="offline" hidden></div>
+<main id="view" class="view"></main>
+<nav class="tabbar" id="tabbar">
+  <a href="#/home" data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg><span>Home</span></a>
+  <a href="#/agents" data-tab="agents"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20c.6-3.6 3.3-6 6.5-6s5.9 2.4 6.5 6M15 14.3c2.9-.5 5.5 1.4 6.3 5.7"/></svg><span>Agents</span></a>
+  <a href="#/activity" data-tab="activity"><svg viewBox="0 0 24 24"><path d="M2 12h4l3-7 5 14 3-7h5"/></svg><span>Activity</span></a>
+  <a href="#/account" data-tab="account"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.2 4-7 8-7s7.2 2.8 8 7"/></svg><span>Account</span></a>
+</nav>
+<div id="sheet" class="sheet" hidden></div>
+<div id="toast" class="toast" hidden></div>
+<script src="/chart.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
