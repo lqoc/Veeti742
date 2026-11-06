@@ -154,7 +154,15 @@ class Risk(Agent):
                        "WHERE id=?", (reason, time.time(), p["id"]))
             t = await trader.sell(p["mint"])
             if not t.ok and t.reason == "nothing to sell":
+                # An RPC can lag right after a buy. Only after 3 reads of an empty balance do we accept
+                # that the tokens left the wallet some other way (you sold them yourself).
+                n = self.sell_failures.get(p["id"], 0) + 1
+                self.sell_failures[p["id"]] = n
+                if n < 3:
+                    self.log.info("%s wallet shows no tokens yet (%s/3)", p["mint"], n)
+                    return
                 t = trader.Trade(True, sig=None, usd=0.0, price=price)
+                reason = "manual"
             if not t.ok:
                 n = self.sell_failures.get(p["id"], 0) + 1
                 self.sell_failures[p["id"]] = n

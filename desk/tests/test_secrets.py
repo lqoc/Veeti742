@@ -12,8 +12,12 @@ TEST_KEY = "4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw9NM5zK3yaL4cE8m8kVxqRv9X3
 
 
 def tracked_text() -> str:
-    files = subprocess.run(["git", "ls-files", "-co", "--exclude-standard"], cwd=REPO, capture_output=True,
-                           text=True).stdout.split()
+    try:
+        files = subprocess.run(["git", "ls-files", "-co", "--exclude-standard"], cwd=REPO, capture_output=True,
+                               text=True, check=True).stdout.split()
+    except (OSError, subprocess.CalledProcessError):   # no git (e.g. inside the Docker image): walk the tree
+        files = [str(p.relative_to(REPO)) for p in REPO.rglob("*")
+                 if p.is_file() and "__pycache__" not in p.parts and ".git" not in p.parts]
     out = []
     for f in files:
         p = REPO / f

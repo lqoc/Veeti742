@@ -506,6 +506,7 @@
   // ------------------------------------------------------------ COIN SCREEN
   function viewCoin(mint) {
     $("#view").innerHTML = `<div class="nav"><a class="back" href="#/home">${ICON.back}Home</a><div class="grow"></div><span id="c-badge"></span></div><div id="coin">${skeleton(1, 60)}${skeleton(1, 300)}${skeleton(2, 80)}</div>`;
+    if (S.coin[mint]) renderCoin(mint, S.coin[mint]);   // last good numbers first
     loadCoin(mint);
     every(15000, () => loadCoin(mint));
   }
@@ -513,7 +514,10 @@
     let c;
     try { c = await api(`/api/coin/${encodeURIComponent(mint)}`); } catch (_) { return; }
     S.coin[mint] = c;
-    if (current !== "coin") return;
+    renderCoin(mint, c);
+  }
+  function renderCoin(mint, c) {
+    if (current !== "coin" || !location.hash.endsWith(mint)) return;
     $("#c-badge").innerHTML = c.mode === "PAPER" ? '<span class="pill paper">PAPER</span>' : "";
     const p = c.position;
     const since = p ? p.since_entry_pct : c.p24;
@@ -558,12 +562,16 @@
   function viewAudit(mint) {
     $("#view").innerHTML = `<div class="nav"><a class="back" href="javascript:history.back()">${ICON.back}Back</a></div><div id="aud">${skeleton(1, 330)}${skeleton(4, 50)}</div>`;
     anim.mint = mint; anim.results = {}; anim.at = 0; anim.busy = false; anim.run = null;
-    loadAudit(mint, true);
+    if (S.audit[mint]) renderAudit(mint, S.audit[mint], false);
+    loadAudit(mint, !S.audit[mint]);
   }
   async function loadAudit(mint, play) {
     let a;
     try { a = await api(`/api/audit/${encodeURIComponent(mint)}`); } catch (_) { return; }
     S.audit[mint] = a;
+    renderAudit(mint, a, play);
+  }
+  function renderAudit(mint, a, play) {
     if (current !== "audit" || anim.mint !== mint) return;
     const sym = a.symbol || a.name || short(mint);
     const has = a.layers.some((l) => l.pass !== null);
@@ -624,6 +632,7 @@
   // ------------------------------------------------------------ ACCOUNT
   async function viewAccount(focus) {
     $("#view").innerHTML = `<div class="nav"><div class="title">Account</div></div><div id="acc">${skeleton(6, 56)}</div>`;
+    if (S.account && S.settings && S.state) drawAccount(focus);   // last good numbers first
     try {
       [S.account, S.settings] = await Promise.all([api("/api/account"), api("/api/settings")]);
       if (!S.state) S.state = await api("/api/state");
