@@ -191,50 +191,40 @@ def glitch_text(c, s, x, y, name, size, k, a=1.0, align="center", tracking=0.0):
         c.restore(); c.restore()
 
 # ------------------------------------------------------------------ subtitles (burned-in) + SRT
-SUBS = [(0.9, 3.6, "The market never sleeps."),
-        (5.3, 7.5, "Meet GrokBot."),
-        (8.5, 10.9, "Your whole trading desk, in one app."),
-        (11.2, 13.6, "Balance, chart, agents and activity — live."),
-        (14.5, 16.4, "The Scanner hunts for new pairs."),
-        (16.95, 18.9, "The Analyst scores every signal."),
-        (19.45, 21.4, "The Executor opens and closes positions."),
-        (21.95, 23.8, "Risk runs the checks — and the stop-loss."),
-        (24.4, 27.0, "Every position, tracked from entry to exit."),
-        (27.2, 29.9, "Every win — and every stop-loss — on the record."),
-        (30.6, 33.0, "Every alert, straight to your phone."),
-        (33.2, 35.0, "Profit taken or stop triggered — you’ll know."),
-        (35.7, 38.6, "One dashboard for all of it."),
-        (41.2, 44.4, "GrokBot is now on Telegram."),
-        (45.6, 50.4, "Join at t.me/grokbotting")]
+import json as _json
+TIMING = _json.load(open(os.path.join(HERE, "subs_timing.json")))
+for _i, _d in enumerate(TIMING):   # caption leaves before the next one arrives
+    _d["end"] = min(_d["t1"] + 0.6, TIMING[_i + 1]["t0"] - 0.02) if _i + 1 < len(TIMING) else _d["t1"] + 0.6
+SUBS = [(d["t0"], d["end"] - 0.15, d["text"]) for d in TIMING]
 
 def subtitles(c, t):
-    for t0, t1, s in SUBS:
-        if t0 - 0.05 <= t <= t1 + 0.35:
-            words = s.split(" "); size = 38; name = "InterDisplay-Medium"
-            total = text_w(s, name, size); x0 = 960 - total / 2; y = 992
-            out = eio_cubic(lin(t, t1, t1 + 0.3))
-            # soft legibility band
-            bp = skia.Paint(AntiAlias=True)
-            bp.setShader(skia.GradientShader.MakeRadial(skia.Point(960, y - 12), total * 0.62 + 120, [col((0, 0, 0), 0.55 * (1 - out)), col((0, 0, 0), 0)]))
-            c.save(); c.scale(1, 0.22); c.drawCircle(960, (y - 12) / 0.22, total * 0.62 + 120, bp); c.restore()
-            dur = min(0.9, (t1 - t0) * 0.45)
-            for i, wd in enumerate(words):
-                pre = " ".join(words[:i]) + (" " if i else "")
-                wx = x0 + text_w(pre, name, size)
-                k = eo_cubic(lin(t, t0 + dur * i / max(1, len(words)), t0 + dur * i / max(1, len(words)) + 0.32))
-                if k <= 0: continue
-                a = k * (1 - out)
-                sh = skia.Paint(AntiAlias=True, Color=col((0, 0, 0), 0.7 * a)); sh.setMaskFilter(skia.MaskFilter.MakeBlur(skia.kNormal_BlurStyle, 6))
-                b = blob(wd, name, size); asc = font(name, size).getMetrics().fAscent
-                c.drawTextBlob(b, wx, y + (1 - k) * 10 + asc + 2, sh)
-                hl = "t.me/grokbotting" in wd
-                draw_text(c, wd, wx, y + (1 - k) * 10, name, size, (150, 220, 255) if hl else WHITE, a, blur=(1 - k) * 3)
+    """Burned-in captions synced to the voice-over: each word appears as it is spoken."""
+    for d in TIMING:
+        t0, t1, s, wt = d["t0"], d["t1"], d["text"], d["words"]
+        if not (t0 - 0.05 <= t <= d["end"]): continue
+        words = s.split(" "); size = 38; name = "InterDisplay-Medium"
+        total = text_w(s, name, size); x0 = 960 - total / 2; y = 992
+        out = eio_cubic(lin(t, d["end"] - 0.3, d["end"]))
+        bp = skia.Paint(AntiAlias=True)
+        bp.setShader(skia.GradientShader.MakeRadial(skia.Point(960, y - 12), total * 0.62 + 120, [col((0, 0, 0), 0.55 * (1 - out)), col((0, 0, 0), 0)]))
+        c.save(); c.scale(1, 0.22); c.drawCircle(960, (y - 12) / 0.22, total * 0.62 + 120, bp); c.restore()
+        for i, wd in enumerate(words):
+            pre = " ".join(words[:i]) + (" " if i else "")
+            wx = x0 + text_w(pre, name, size)
+            k = eo_cubic(lin(t, wt[i] - 0.04, wt[i] + 0.22))
+            if k <= 0: continue
+            a = k * (1 - out)
+            sh = skia.Paint(AntiAlias=True, Color=col((0, 0, 0), 0.7 * a)); sh.setMaskFilter(skia.MaskFilter.MakeBlur(skia.kNormal_BlurStyle, 6))
+            b_ = blob(wd, name, size); asc = font(name, size).getMetrics().fAscent
+            c.drawTextBlob(b_, wx, y + (1 - k) * 10 + asc + 2, sh)
+            hl = "t.me/grokbotting" in wd
+            draw_text(c, wd, wx, y + (1 - k) * 10, name, size, (150, 220, 255) if hl else WHITE, a, blur=(1 - k) * 3)
 
 def write_srt(path):
     def ts(x):
         ms = int(round(x * 1000)); return "%02d:%02d:%02d,%03d" % (ms // 3600000, ms // 60000 % 60, ms // 1000 % 60, ms % 1000)
     with open(path, "w") as f:
-        for i, (a, b, s) in enumerate(SUBS, 1): f.write("%d\n%s --> %s\n%s\n\n" % (i, ts(a), ts(b + 0.3), s))
+        for i, (a, b, s) in enumerate(SUBS, 1): f.write("%d\n%s --> %s\n%s\n\n" % (i, ts(a), ts(b), s))
 
 # ------------------------------------------------------------------ HUD
 CHAPTERS = [(0, 8, "01", "INTRO"), (8, 14.1, "02", "THE DESK"), (14.1, 24.05, "03", "AGENTS"), (24.05, 30.2, "04", "POSITIONS"),

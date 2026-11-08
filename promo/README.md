@@ -18,10 +18,14 @@ to `src/A..D` at constant frame rate (60/60/30/30 fps).
 
 ---
 
-# GrokBot showreel (v2)
+# GrokBot showreel (v2, with voice-over)
 
-`GrokBot_Showreel_1080p60.mp4` — 52 s, 1920×1080, 60 fps, H.264 + AAC 320 kbps (-14.1 LUFS) with burned-in subtitles
-and a selectable English subtitle track; `GrokBot_Showreel.en.srt` is the same captions as a sidecar file.
+`GrokBot_Showreel_VO_1080p60.mp4` — 52 s, 1920×1080, 60 fps, H.264 + AAC 320 kbps (-14.3 LUFS). Narrated voice-over
+with subtitles synced to it word by word (burned in, plus a selectable English track); `GrokBot_Showreel.en.srt` is the
+same captions as a sidecar file.
+
+Voice: Kokoro-82M (Apache-2.0, open weights, run locally), voice `af_heart`. Music and effects duck about 6 dB under
+the narration. To change voice, run `source/showreel/vo.py <voice>` and `vo_final.py`, then `mix_vo.py` and re-render.
 
 Shots: 3D kinetic type over a grid flythrough → extruded 3D logo forge with god rays and a glitch wordmark →
 card-flip morph into the phone → exploded 3D UI stack with callouts → agent carousel ring (Scanner, Analyst,

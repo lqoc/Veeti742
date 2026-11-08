@@ -1,60 +1,60 @@
 1
-00:00:00,900 --> 00:00:03,900
+00:00:01,000 --> 00:00:02,715
 The market never sleeps.
 
 2
-00:00:05,300 --> 00:00:07,800
+00:00:05,250 --> 00:00:06,828
 Meet GrokBot.
 
 3
-00:00:08,500 --> 00:00:11,200
+00:00:08,450 --> 00:00:10,827
 Your whole trading desk, in one app.
 
 4
-00:00:11,200 --> 00:00:13,900
+00:00:11,050 --> 00:00:14,229
 Balance, chart, agents and activity — live.
 
 5
-00:00:14,500 --> 00:00:16,700
+00:00:14,600 --> 00:00:16,645
 The Scanner hunts for new pairs.
 
 6
-00:00:16,950 --> 00:00:19,200
+00:00:17,000 --> 00:00:19,255
 The Analyst scores every signal.
 
 7
-00:00:19,450 --> 00:00:21,700
-The Executor opens and closes positions.
+00:00:19,500 --> 00:00:21,650
+The Executor places the trades.
 
 8
-00:00:21,950 --> 00:00:24,100
-Risk runs the checks — and the stop-loss.
+00:00:22,000 --> 00:00:24,198
+Risk manages the stop-loss.
 
 9
-00:00:24,400 --> 00:00:27,300
+00:00:24,500 --> 00:00:27,080
 Every position, tracked from entry to exit.
 
 10
-00:00:27,200 --> 00:00:30,200
+00:00:27,250 --> 00:00:30,331
 Every win — and every stop-loss — on the record.
 
 11
-00:00:30,600 --> 00:00:33,300
+00:00:30,600 --> 00:00:32,781
 Every alert, straight to your phone.
 
 12
-00:00:33,200 --> 00:00:35,300
+00:00:33,050 --> 00:00:35,630
 Profit taken or stop triggered — you’ll know.
 
 13
-00:00:35,700 --> 00:00:38,900
+00:00:35,800 --> 00:00:37,817
 One dashboard for all of it.
 
 14
-00:00:41,200 --> 00:00:44,700
+00:00:41,300 --> 00:00:43,583
 GrokBot is now on Telegram.
 
 15
-00:00:45,600 --> 00:00:50,700
+00:00:46,600 --> 00:00:49,570
 Join at t.me/grokbotting
 
